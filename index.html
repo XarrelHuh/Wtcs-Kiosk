@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>School Map Layout</title>
+
+    <style>
+        body {
+            font-family: Century Gothic, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        h1, p {
+            text-align: center;
+        }
+
+        .container {
+            position: relative;
+            width: 800px;
+            max-width: 90vw;
+            margin: 20px auto;
+        }
+
+        img {
+            width: 100%;
+            display: block;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 40px;
+            color: #333;
+            background: none;
+            border: none;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.2s;
+            user-select: none;
+        }
+
+        .arrow:hover {
+            transform: translateY(-50%) scale(1.2);
+        }
+
+        .left { left: 15px; }
+        .right { right: 15px; }
+
+        .container:hover .arrow {
+            opacity: 0.8;
+        }
+
+        input {
+            padding: 8px;
+            font-size: 16px;
+            width: 220px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        button.searchBtn {
+            padding: 8px 12px;
+            font-size: 16px;
+            margin-left: 5px;
+            cursor: pointer;
+        }
+
+        #floorMessage {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>School Map Layout</h1>
+    <p>Hover over the map to navigate through floors.</p>
+
+    <!-- Search bar -->
+    <div>
+        <input 
+            type="text" 
+            id="roomInput" 
+            placeholder="Enter room number (e.g. 203)"
+        >
+        <button class="searchBtn" onclick="goToRoom()">Go</button>
+    </div>
+
+    <!-- Map -->
+    <div class="container">
+        <img id="mapImage" src="">
+
+        <button class="arrow left" onclick="prevFloor()">&#9664;</button>
+        <button class="arrow right" onclick="nextFloor()">&#9654;</button>
+    </div>
+
+    <!-- Message -->
+    <p id="floorMessage"></p>
+
+    <script>
+        let images = ["floor1.png", "floor2.png", "floor3.png"];
+        let current = 0;
+
+        function showImage() {
+            document.getElementById("mapImage").src = images[current];
+        }
+
+        function nextFloor() {
+            current = (current + 1) % images.length;
+            showImage();
+        }
+
+        function prevFloor() {
+            current = (current - 1 + images.length) % images.length;
+            showImage();
+        }
+
+        function goToRoom() {
+            let input = document.getElementById("roomInput").value.trim();
+            let message = document.getElementById("floorMessage");
+
+            if (input.length === 0) {
+                message.textContent = "Please enter a room number.";
+                return;
+            }
+
+            let floor = parseInt(input.charAt(0));
+
+            if (floor >= 1 && floor <= images.length) {
+                current = floor - 1;
+                showImage();
+
+                if (floor === 2) {
+                    message.textContent = "Take the stairs on your right to the second floor.";
+                } 
+                else if (floor === 3) {
+                    message.textContent = "Take the stairs on your right to the third floor.";
+                } 
+                else {
+                    message.textContent = "";
+                }
+
+            } else {
+                message.textContent = "Invalid room number. Use 100s, 200s, or 300s.";
+            }
+        }
+
+        // Press Enter to search
+        document.getElementById("roomInput").addEventListener("keypress", function(e) {
+            if (e.key === "Enter") {
+                goToRoom();
+            }
+        });
+
+        // Load first image
+        showImage();
+    </script>
+
+</body>
+</html>
