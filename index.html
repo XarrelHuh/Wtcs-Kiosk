@@ -1,169 +1,177 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>School Map Layout</title>
+<meta charset="UTF-8">
+<title>School Map Navigation</title>
 
-    <style>
-        body {
-            font-family: Century Gothic, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin: 0;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 
-        h1, p {
-            text-align: center;
-        }
+<style>
+body {
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    background: #000; /* removes white edges */
+    overflow: hidden; /* no scrollbars */
+}
 
-        .container {
-            position: relative;
-            width: 800px;
-            max-width: 90vw;
-            margin: 20px auto;
-        }
+/* Top UI (floating) */
+.topUI {
+    position: absolute;
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex;
+    gap: 8px;
+}
 
-        img {
-            width: 100%;
-            display: block;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
+input {
+    padding: 10px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: none;
+}
 
-        .arrow {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 40px;
-            color: #333;
-            background: none;
-            border: none;
-            cursor: pointer;
-            opacity: 0;
-            transition: opacity 0.3s, transform 0.2s;
-            user-select: none;
-        }
+button {
+    padding: 10px 14px;
+    border: none;
+    border-radius: 8px;
+    background: #4f46e5;
+    color: white;
+    cursor: pointer;
+}
 
-        .arrow:hover {
-            transform: translateY(-50%) scale(1.2);
-        }
+/* FULLSCREEN MAP */
+.container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+}
 
-        .left { left: 15px; }
-        .right { right: 15px; }
+/* Image */
+img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* full image always visible */
+}
 
-        .container:hover .arrow {
-            opacity: 0.8;
-        }
+/* Arrows ON IMAGE */
+.arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 30px;
+    background: rgba(255,255,255,0.6);
+    border-radius: 50%;
+    padding: 14px;
+    cursor: pointer;
+    opacity: 0;
+    transition: 0.3s;
+    z-index: 5;
+}
 
-        input {
-            padding: 8px;
-            font-size: 16px;
-            width: 220px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-        }
+.left { left: 20px; }
+.right { right: 20px; }
 
-        button.searchBtn {
-            padding: 8px 12px;
-            font-size: 16px;
-            margin-left: 5px;
-            cursor: pointer;
-        }
+/* Show when hovering map */
+.container:hover .arrow {
+    opacity: 1;
+}
 
-        #floorMessage {
-            margin-top: 10px;
-            font-weight: bold;
-        }
-    </style>
+/* Bottom info (floating) */
+.bottomUI {
+    position: absolute;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    color: white;
+    z-index: 10;
+}
+
+#floorMessage {
+    margin-top: 5px;
+    background: rgba(0,0,0,0.5);
+    padding: 8px 12px;
+    border-radius: 6px;
+}
+</style>
 </head>
 
 <body>
 
-    <h1>School Map Layout</h1>
-    <p>Hover over the map to navigate through floors.</p>
+<!-- Floating Search -->
+<div class="topUI">
+    <input type="number" id="roomInput" placeholder="Enter room (e.g. 203)">
+    <button onclick="goToRoom()">Go</button>
+</div>
 
-    <!-- Search bar -->
-    <div>
-        <input 
-            type="text" 
-            id="roomInput" 
-            placeholder="Enter room number (e.g. 203)"
-        >
-        <button class="searchBtn" onclick="goToRoom()">Go</button>
-    </div>
+<!-- FULLSCREEN MAP -->
+<div class="container">
+    <img id="mapImage">
 
-    <!-- Map -->
-    <div class="container">
-        <img id="mapImage" src="">
+    <!-- Arrows ON IMAGE -->
+    <div class="arrow left" onclick="prevFloor()">◀</div>
+    <div class="arrow right" onclick="nextFloor()">▶</div>
+</div>
 
-        <button class="arrow left" onclick="prevFloor()">&#9664;</button>
-        <button class="arrow right" onclick="nextFloor()">&#9654;</button>
-    </div>
+<!-- Bottom Info -->
+<div class="bottomUI">
+    <div id="floorIndicator">Floor 1</div>
+    <div id="floorMessage"></div>
+</div>
 
-    <!-- Message -->
-    <p id="floorMessage"></p>
+<script>
+let images = ["floor1.png", "floor2.png", "floor3.png"];
+let current = 0;
 
-    <script>
-        let images = ["floor1.png", "floor2.png", "floor3.png"];
-        let current = 0;
+function showImage() {
+    document.getElementById("mapImage").src = images[current];
+    document.getElementById("floorIndicator").textContent = "Floor " + (current + 1);
+}
 
-        function showImage() {
-            document.getElementById("mapImage").src = images[current];
-        }
+function nextFloor() {
+    current = (current + 1) % images.length;
+    showImage();
+}
 
-        function nextFloor() {
-            current = (current + 1) % images.length;
-            showImage();
-        }
+function prevFloor() {
+    current = (current - 1 + images.length) % images.length;
+    showImage();
+}
 
-        function prevFloor() {
-            current = (current - 1 + images.length) % images.length;
-            showImage();
-        }
+function goToRoom() {
+    let input = document.getElementById("roomInput").value.trim();
+    let message = document.getElementById("floorMessage");
 
-        function goToRoom() {
-            let input = document.getElementById("roomInput").value.trim();
-            let message = document.getElementById("floorMessage");
+    if (!/^\d{3}$/.test(input)) {
+        message.textContent = "Enter a valid 3-digit room number.";
+        return;
+    }
 
-            if (input.length === 0) {
-                message.textContent = "Please enter a room number.";
-                return;
-            }
+    let floor = parseInt(input.charAt(0));
 
-            let floor = parseInt(input.charAt(0));
-
-            if (floor >= 1 && floor <= images.length) {
-                current = floor - 1;
-                showImage();
-
-                if (floor === 2) {
-                    message.textContent = "Take the stairs on your right to the second floor.";
-                } 
-                else if (floor === 3) {
-                    message.textContent = "Take the stairs on your right to the third floor.";
-                } 
-                else {
-                    message.textContent = "";
-                }
-
-            } else {
-                message.textContent = "Invalid room number. Use 100s, 200s, or 300s.";
-            }
-        }
-
-        // Press Enter to search
-        document.getElementById("roomInput").addEventListener("keypress", function(e) {
-            if (e.key === "Enter") {
-                goToRoom();
-            }
-        });
-
-        // Load first image
+    if (floor >= 1 && floor <= images.length) {
+        current = floor - 1;
         showImage();
-    </script>
+
+        if (floor === 2) {
+            message.textContent = "Take the stairs to the second floor.";
+        } 
+        else if (floor === 3) {
+            message.textContent = "Take the stairs to the third floor.";
+        } 
+        else {
+            message.textContent = "";
+        }
+
+    } else {
+        message.textContent = "Room must be in the 100s, 200s, or 300s.";
+    }
+}
+
+showImage();
+</script>
 
 </body>
 </html>
