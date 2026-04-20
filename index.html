@@ -1,20 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 <meta charset="UTF-8">
 <title>School Map Navigation</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Public+Sans&display=swap" rel="stylesheet">
 
 <style>
 body {
     font-family: 'Inter', sans-serif;
     margin: 0;
-    background: #000; /* removes white edges */
-    overflow: hidden; /* no scrollbars */
+    background: #000;
+    overflow: hidden;
 }
 
-/* Top UI (floating) */
+/* Top UI */
 .topUI {
     position: absolute;
     top: 15px;
@@ -41,44 +42,30 @@ button {
     cursor: pointer;
 }
 
-/* FULLSCREEN MAP */
+/* MAP */
 .container {
     position: relative;
     width: 100vw;
     height: 100vh;
 }
 
-/* Image */
 img {
     width: 100%;
     height: 100%;
-    object-fit: contain; /* full image always visible */
+    object-fit: contain;
 }
 
-/* Arrows ON IMAGE */
-.arrow {
+/* Canvas */
+#mapCanvas {
     position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 30px;
-    background: rgba(255,255,255,0.6);
-    border-radius: 50%;
-    padding: 14px;
-    cursor: pointer;
-    opacity: 0;
-    transition: 0.3s;
-    z-index: 5;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
 }
 
-.left { left: 20px; }
-.right { right: 20px; }
-
-/* Show when hovering map */
-.container:hover .arrow {
-    opacity: 1;
-}
-
-/* Bottom info (floating) */
+/* Bottom UI */
 .bottomUI {
     position: absolute;
     bottom: 15px;
@@ -96,50 +83,70 @@ img {
     border-radius: 6px;
 }
 </style>
+
 </head>
 
 <body>
 
-<!-- Floating Search -->
+<!-- Top UI -->
 <div class="topUI">
     <input type="number" id="roomInput" placeholder="Enter room (e.g. 203)">
     <button onclick="goToRoom()">Go</button>
 </div>
 
-<!-- FULLSCREEN MAP -->
+<!-- MAP -->
 <div class="container">
     <img id="mapImage">
-
-    <!-- Arrows ON IMAGE -->
-    <div class="arrow left" onclick="prevFloor()">◀</div>
-    <div class="arrow right" onclick="nextFloor()">▶</div>
+    <canvas id="mapCanvas"></canvas>
 </div>
 
-<!-- Bottom Info -->
+<!-- Bottom UI -->
 <div class="bottomUI">
-    <div id="floorIndicator">Floor 1</div>
     <div id="floorMessage"></div>
 </div>
 
 <script>
+
 let images = ["floor1.png", "floor2.png", "floor3.png"];
 let current = 0;
 
+/* 📍 POSITION SETTINGS */
+const positions = {
+    1: { x: 0.299, y: 0.220 }, // Floor 2
+    2: { x: 0.296, y: 0.119 }  // Floor 3
+};
+
+/* LOAD IMAGE */
 function showImage() {
-    document.getElementById("mapImage").src = images[current];
-    document.getElementById("floorIndicator").textContent = "Floor " + (current + 1);
+    const img = document.getElementById("mapImage");
+
+    img.src = images[current];
+
+    img.onload = () => {
+        resizeCanvas();
+        drawYouAreHere();
+    };
 }
 
-function nextFloor() {
-    current = (current + 1) % images.length;
-    showImage();
+/* RESIZE */
+function resizeCanvas() {
+    const canvas = document.getElementById("mapCanvas");
+    const img = document.getElementById("mapImage");
+
+    canvas.width = img.clientWidth;
+    canvas.height = img.clientHeight;
 }
 
-function prevFloor() {
-    current = (current - 1 + images.length) % images.length;
-    showImage();
-}
+/* ENTER KEY */
+document
+    .getElementById("roomInput")
+    .addEventListener("keypress", function (e) {
+        if (e.key === "Enter") {
+            goToRoom();
+        }
+    });
 
+/* NAVIGATION */
 function goToRoom() {
     let input = document.getElementById("roomInput").value.trim();
     let message = document.getElementById("floorMessage");
@@ -155,22 +162,47 @@ function goToRoom() {
         current = floor - 1;
         showImage();
 
-        if (floor === 2) {
-            message.textContent = "Take the stairs to the second floor.";
-        } 
-        else if (floor === 3) {
-            message.textContent = "Take the stairs to the third floor.";
-        } 
-        else {
-            message.textContent = "";
-        }
-
+        message.textContent = "Navigating to room " + input;
     } else {
-        message.textContent = "Room must be in the 100s, 200s, or 300s.";
+        message.textContent = "Room not found.";
     }
 }
 
+/* 🧭 DRAW MARKER */
+function drawYouAreHere() {
+    const canvas = document.getElementById("mapCanvas");
+    const ctx = canvas.getContext("2d");
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const pos = positions[current];
+    if (!pos) return;
+
+    const x = pos.x * canvas.width;
+    const y = pos.y * canvas.height;
+
+    /* 🔺 RED ARROW */
+    ctx.fillStyle = "red";
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - 10, y - 20);
+    ctx.lineTo(x + 10, y - 20);
+    ctx.closePath();
+    ctx.fill();
+
+    /* 🖤 TEXT */
+    ctx.fillStyle = "black";
+    ctx.font = "14px 'Public Sans'";
+    ctx.textAlign = "center";
+    ctx.fillText("You are here", x, y - 30);
+}
+
 showImage();
+
+</script>
+
+</body>
+</html>
 </script>
 
 </body>
