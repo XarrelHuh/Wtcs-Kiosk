@@ -62,7 +62,7 @@ img {
     left: 0;
     width: 100%;
     height: 100%;
-    pointer-events: none;
+    pointer-events: auto;
 }
 
 /* Bottom UI */
@@ -110,9 +110,12 @@ img {
 let images = ["floor1.png", "floor2.png", "floor3.png"];
 let current = 0;
 
-/* 📍 POSITION SETTINGS */
+/* HALLWAY NODES (YOU WILL BUILD THIS IN PROGRESS) */
+const nodes = {};
+
+/* POSITION SETTINGS (CONNECTED WITH THE YOU ARE HERE) */
 const positions = {
-    1: { x: 0.253, y: 0.220 }, // Floor 2
+    1: { x: 0.256, y: 0.220 }, // Floor 2
     2: { x: 0.296, y: 0.119 }  // Floor 3
 };
 
@@ -168,7 +171,7 @@ function goToRoom() {
     }
 }
 
-/* 🧭 DRAW MARKER */
+/* DRAW MARKER (FINDING THE X ANd Y TO LATER ON ADD POINTS) */
 function drawYouAreHere() {
     const canvas = document.getElementById("mapCanvas");
     const ctx = canvas.getContext("2d");
@@ -181,7 +184,7 @@ function drawYouAreHere() {
     const x = pos.x * canvas.width;
     const y = pos.y * canvas.height;
 
-    /* 🔺 RED ARROW */
+    /* 🔺 RED ARROW (CONNECTED WITH THE YOU ARE HERE) */
     ctx.fillStyle = "red";
     ctx.beginPath();
     ctx.moveTo(x, y);
@@ -190,19 +193,37 @@ function drawYouAreHere() {
     ctx.closePath();
     ctx.fill();
 
-    /* 🖤 TEXT */
+    /* TEXT */
     ctx.fillStyle = "black";
     ctx.font = "14px 'Public Sans'";
     ctx.textAlign = "center";
     ctx.fillText("You are here", x, y - 30);
 }
 
+/* CLICK MAP TO GET COORDINATES FOR NODES (TOO BE TOLD THE X AND Y) */
+document.getElementById("mapCanvas").addEventListener("click", function (e) {
+    const rect = this.getBoundingClientRect();
+
+    const x = (e.clientX - rect.left) / this.width;
+    const y = (e.clientY - rect.top) / this.height;
+
+    alert(`Copy this:\n x: ${x.toFixed(3)}, y: ${y.toFixed(3)}, floor: ${current}`);
+});
+
+/* ⌨️ KEEP INPUT FOCUSED (NO MOUSE NEEDED) */
+function keepFocus() {
+    const input = document.getElementById("roomInput");
+    if (document.activeElement !== input) {
+        input.focus();
+    }
+}
+
+// run every second
+setInterval(keepFocus, 1000);
+
 showImage();
 
-</script>
 
-</body>
-</html>
 </script>
 
 </body>
