@@ -57,7 +57,8 @@ img {
     position: absolute;
     top: 0;
     left: 0;
-    pointer-events: none;
+    width: 100%;
+    height: 100%;
 }
 
 .bottomUI {
@@ -76,20 +77,6 @@ img {
     padding: 8px 12px;
     border-radius: 6px;
 }
-
-#debugBar {
-    position: absolute;
-    top: 60px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(255,0,0,0.8);
-    color: white;
-    padding: 8px 12px;
-    border-radius: 6px;
-    z-index: 20;
-    font-size: 13px;
-    text-align: center;
-}
 </style>
 </head>
 
@@ -99,8 +86,6 @@ img {
     <input type="text" id="roomInput" placeholder="Enter room (e.g. 203)">
     <button onclick="goToRoom()">Go</button>
 </div>
-
-<div id="debugBar">Loading...</div>
 
 <div class="container">
     <img id="mapImage">
@@ -113,19 +98,17 @@ img {
 
 <script>
 
-function debug(msg) {
-    document.getElementById("debugBar").textContent = msg;
-}
-
 let images = ["floor1.png", "floor2.png", "floor3.png"];
-let current = 0;
-let currentRoom = null;
+let current = 1;
 
+/* =========================
+   HALLWAY GRAPH
+========================= */
 const nodes = {
     A: { x: 0.148, y: 0.499, neighbors: ["B"] },
-    B: { x: 0.150, y: 0.201, neighbors: ["A", "C", "START"] },
-    C: { x: 0.372, y: 0.187, neighbors: ["B", "D", "START"] },
-    START: { x: 0.256, y: 0.220, neighbors: ["B", "C"] },
+    B: { x: 0.150, y: 0.201, neighbors: ["A", "C", "START"] }, // ← added START
+    C: { x: 0.372, y: 0.187, neighbors: ["B", "D", "START"] }, // ← added START
+    START: { x: 0.256, y: 0.220, neighbors: ["B", "C"] },      // ← new node at your position
     D: { x: 0.375, y: 0.273, neighbors: ["C", "E"] },
     E: { x: 0.410, y: 0.279, neighbors: ["D", "F"] },
     F: { x: 0.411, y: 0.350, neighbors: ["E", "G"] },
@@ -138,6 +121,9 @@ const nodes = {
     M: { x: 0.770, y: 0.400, neighbors: ["L"] }
 };
 
+/* =========================
+   ROOMS
+========================= */
 const rooms = {
     "248": { x: 0.278, y: 0.161 },
     "249": { x: 0.286, y: 0.214 },
@@ -172,11 +158,7 @@ const rooms = {
     "274B": { x: 0.752, y: 0.365 }
 };
 
-const positions = {
-    0: { x: 0.256, y: 0.220 },
-    1: { x: 0.296, y: 0.119 }
-};
-
+/* ========================= */
 function dist(a, b) {
     return Math.hypot(a.x - b.x, a.y - b.y);
 }
@@ -185,10 +167,15 @@ function connectRooms() {
     for (let r in rooms) {
         let closest = null;
         let min = Infinity;
+
         for (let n in nodes) {
             let d = dist(rooms[r], nodes[n]);
-            if (d < min) { min = d; closest = n; }
+            if (d < min) {
+                min = d;
+                closest = n;
+            }
         }
+
         rooms[r].node = closest;
     }
 }
@@ -197,6 +184,7 @@ function shortestPath(start, end) {
     let distMap = {};
     let prev = {};
     let unvisited = new Set(Object.keys(nodes));
+
     for (let n of unvisited) distMap[n] = Infinity;
     distMap[start] = 0;
 
@@ -204,10 +192,14 @@ function shortestPath(start, end) {
         let currentNode = [...unvisited].reduce((a, b) =>
             distMap[a] < distMap[b] ? a : b
         );
+
         if (currentNode === end) break;
+
         unvisited.delete(currentNode);
+
         for (let neighbor of nodes[currentNode].neighbors) {
             let alt = distMap[currentNode] + dist(nodes[currentNode], nodes[neighbor]);
+
             if (alt < distMap[neighbor]) {
                 distMap[neighbor] = alt;
                 prev[neighbor] = currentNode;
@@ -217,134 +209,140 @@ function shortestPath(start, end) {
 
     let path = [];
     let u = end;
-    while (u) { path.unshift(u); u = prev[u]; }
+
+    while (u) {
+        path.unshift(u);
+        u = prev[u];
+    }
+
     return path;
+}
+
+function getClosestNode(pos) {
+    let closest = null;
+    let min = Infinity;
+
+    for (let n in nodes) {
+        let d = dist(pos, nodes[n]);
+        if (d < min) {
+            min = d;
+            closest = n;
+        }
+    }
+
+    return closest;
+}
+
+function drawPath(roomId) {
+    const canvas = document.getElementById("mapCanvas");
+    const ctx = canvas.getContext("2d");
+
+    drawYouAreHere();
+
+    const room = rooms[roomId];
+    if (!room) return;
+
+    const startPos = positions[current];
+    const startNode = "START"; // ← was hardcoded "B", now uses the entrance node
+    const endNode = room.node;
+
+    const path = shortestPath(startNode, endNode);
+
+    ctx.strokeStyle = "blue";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+
+    // START FROM YOU
+    ctx.moveTo(startPos.x * canvas.width, startPos.y * canvas.height);
+
+    // follow hallway nodes
+    for (let n of path) {
+        let p = nodes[n];
+        ctx.lineTo(p.x * canvas.width, p.y * canvas.height);
+    }
+
+    // go to room
+    ctx.lineTo(room.x * canvas.width, room.y * canvas.height);
+
+    ctx.stroke();
+}
+/* ========================= UI ========================= */
+
+const positions = {
+    1: { x: 0.256, y: 0.220 },
+    2: { x: 0.296, y: 0.119 }
+};
+
+function showImage() {
+    const img = document.getElementById("mapImage");
+
+    img.src = images[current];
+
+    img.onload = () => {
+        resizeCanvas();
+        drawYouAreHere();
+    };
 }
 
 function resizeCanvas() {
     const canvas = document.getElementById("mapCanvas");
     const img = document.getElementById("mapImage");
-    const rect = img.getBoundingClientRect();
 
-    canvas.width = rect.width;
-    canvas.height = rect.height;
-    canvas.style.top = rect.top + "px";
-    canvas.style.left = rect.left + "px";
-    canvas.style.width = rect.width + "px";
-    canvas.style.height = rect.height + "px";
-
-    debug("Canvas: " + Math.round(rect.width) + "x" + Math.round(rect.height));
+    canvas.width = img.clientWidth;
+    canvas.height = img.clientHeight;
 }
 
-function drawAll(roomId) {
+function goToRoom() {
+    let input = document.getElementById("roomInput").value.trim();
+    let message = document.getElementById("floorMessage");
+
+    if (!rooms[input]) {
+        message.textContent = "Room not found.";
+        return;
+    }
+
+    current = 1;
+    showImage();
+
+    setTimeout(() => {
+        drawPath(input);
+    }, 200);
+
+    message.textContent = "Navigating to room " + input;
+}
+
+function drawYouAreHere() {
     const canvas = document.getElementById("mapCanvas");
     const ctx = canvas.getContext("2d");
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const pos = positions[current];
-    if (pos) {
-        const x = pos.x * canvas.width;
-        const y = pos.y * canvas.height;
+    if (!pos) return;
 
-        ctx.fillStyle = "red";
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x - 10, y - 20);
-        ctx.lineTo(x + 10, y - 20);
-        ctx.closePath();
-        ctx.fill();
+    const x = pos.x * canvas.width;
+    const y = pos.y * canvas.height;
 
-        ctx.fillStyle = "white";
-        ctx.font = "bold 13px Inter, sans-serif";
-        ctx.textAlign = "center";
-        ctx.fillText("You are here", x, y - 25);
-    }
+    ctx.fillStyle = "red";
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - 10, y - 20);
+    ctx.lineTo(x + 10, y - 20);
+    ctx.closePath();
+    ctx.fill();
 
-    if (roomId && rooms[roomId]) {
-        const room = rooms[roomId];
-        const path = shortestPath("START", room.node);
-        const startPos = positions[current];
-
-        debug("Drawing path to " + roomId + " via " + path.join(" → ") + " | Canvas: " + canvas.width + "x" + canvas.height);
-
-        ctx.strokeStyle = "#4f46e5";
-        ctx.lineWidth = 5;
-        ctx.lineJoin = "round";
-        ctx.lineCap = "round";
-        ctx.beginPath();
-        ctx.moveTo(startPos.x * canvas.width, startPos.y * canvas.height);
-
-        for (let n of path) {
-            ctx.lineTo(nodes[n].x * canvas.width, nodes[n].y * canvas.height);
-        }
-
-        ctx.lineTo(room.x * canvas.width, room.y * canvas.height);
-        ctx.stroke();
-
-        ctx.fillStyle = "#4f46e5";
-        ctx.beginPath();
-        ctx.arc(room.x * canvas.width, room.y * canvas.height, 8, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = "white";
-        ctx.font = "bold 13px Inter, sans-serif";
-        ctx.textAlign = "center";
-        ctx.fillText("Room " + roomId, room.x * canvas.width, room.y * canvas.height - 14);
-    }
+    ctx.fillStyle = "black";
+    ctx.font = "14px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("You are here", x, y - 30);
 }
 
-function showImage(callback) {
-    const img = document.getElementById("mapImage");
-    img.src = images[current];
-
-    img.onload = () => {
-        debug("Image loaded: " + img.naturalWidth + "x" + img.naturalHeight);
-        setTimeout(() => {
-            resizeCanvas();
-            if (callback) callback();
-        }, 150);
-    };
-
-    if (img.complete && img.naturalWidth !== 0) {
-        debug("Image was cached");
-        setTimeout(() => {
-            resizeCanvas();
-            if (callback) callback();
-        }, 150);
-    }
-}
-
-function goToRoom() {
-    const input = document.getElementById("roomInput").value.trim();
-    const message = document.getElementById("floorMessage");
-
-    if (!rooms[input]) {
-        message.textContent = "Room not found.";
-        debug("Room not found: " + input);
-        return;
-    }
-
-    currentRoom = input;
-    current = 0;
-
-    showImage(() => {
-        drawAll(currentRoom);
-    });
-
-    message.textContent = "Navigating to room " + input;
-}
-
-window.addEventListener("resize", () => {
-    resizeCanvas();
-    drawAll(currentRoom);
-});
-
+/* INIT */
 connectRooms();
-showImage(() => {
-    drawAll(null);
-});
+showImage();
 
 </script>
+
 </body>
 </html>
+
