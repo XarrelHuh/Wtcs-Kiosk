@@ -76,6 +76,20 @@ img {
     padding: 8px 12px;
     border-radius: 6px;
 }
+
+#debugBar {
+    position: absolute;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255,0,0,0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    z-index: 20;
+    font-size: 13px;
+    text-align: center;
+}
 </style>
 </head>
 
@@ -85,6 +99,8 @@ img {
     <input type="text" id="roomInput" placeholder="Enter room (e.g. 203)">
     <button onclick="goToRoom()">Go</button>
 </div>
+
+<div id="debugBar">Loading...</div>
 
 <div class="container">
     <img id="mapImage">
@@ -97,13 +113,14 @@ img {
 
 <script>
 
+function debug(msg) {
+    document.getElementById("debugBar").textContent = msg;
+}
+
 let images = ["floor1.png", "floor2.png", "floor3.png"];
 let current = 0;
 let currentRoom = null;
 
-/* =========================
-   HALLWAY GRAPH
-========================= */
 const nodes = {
     A: { x: 0.148, y: 0.499, neighbors: ["B"] },
     B: { x: 0.150, y: 0.201, neighbors: ["A", "C", "START"] },
@@ -121,9 +138,6 @@ const nodes = {
     M: { x: 0.770, y: 0.400, neighbors: ["L"] }
 };
 
-/* =========================
-   ROOMS
-========================= */
 const rooms = {
     "248": { x: 0.278, y: 0.161 },
     "249": { x: 0.286, y: 0.214 },
@@ -163,9 +177,6 @@ const positions = {
     1: { x: 0.296, y: 0.119 }
 };
 
-/* =========================
-   HELPERS
-========================= */
 function dist(a, b) {
     return Math.hypot(a.x - b.x, a.y - b.y);
 }
@@ -186,7 +197,6 @@ function shortestPath(start, end) {
     let distMap = {};
     let prev = {};
     let unvisited = new Set(Object.keys(nodes));
-
     for (let n of unvisited) distMap[n] = Infinity;
     distMap[start] = 0;
 
@@ -196,7 +206,6 @@ function shortestPath(start, end) {
         );
         if (currentNode === end) break;
         unvisited.delete(currentNode);
-
         for (let neighbor of nodes[currentNode].neighbors) {
             let alt = distMap[currentNode] + dist(nodes[currentNode], nodes[neighbor]);
             if (alt < distMap[neighbor]) {
@@ -212,9 +221,6 @@ function shortestPath(start, end) {
     return path;
 }
 
-/* =========================
-   CANVAS
-========================= */
 function resizeCanvas() {
     const canvas = document.getElementById("mapCanvas");
     const img = document.getElementById("mapImage");
@@ -226,6 +232,8 @@ function resizeCanvas() {
     canvas.style.left = rect.left + "px";
     canvas.style.width = rect.width + "px";
     canvas.style.height = rect.height + "px";
+
+    debug("Canvas: " + Math.round(rect.width) + "x" + Math.round(rect.height));
 }
 
 function drawAll(roomId) {
@@ -234,7 +242,6 @@ function drawAll(roomId) {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw You Are Here marker
     const pos = positions[current];
     if (pos) {
         const x = pos.x * canvas.width;
@@ -254,13 +261,12 @@ function drawAll(roomId) {
         ctx.fillText("You are here", x, y - 25);
     }
 
-    // Draw path
     if (roomId && rooms[roomId]) {
         const room = rooms[roomId];
-        const startNode = "START";
-        const endNode = room.node;
-        const path = shortestPath(startNode, endNode);
+        const path = shortestPath("START", room.node);
         const startPos = positions[current];
+
+        debug("Drawing path to " + roomId + " via " + path.join(" → ") + " | Canvas: " + canvas.width + "x" + canvas.height);
 
         ctx.strokeStyle = "#4f46e5";
         ctx.lineWidth = 5;
@@ -276,7 +282,6 @@ function drawAll(roomId) {
         ctx.lineTo(room.x * canvas.width, room.y * canvas.height);
         ctx.stroke();
 
-        // Destination dot
         ctx.fillStyle = "#4f46e5";
         ctx.beginPath();
         ctx.arc(room.x * canvas.width, room.y * canvas.height, 8, 0, Math.PI * 2);
@@ -289,38 +294,34 @@ function drawAll(roomId) {
     }
 }
 
-/* =========================
-   IMAGE LOADING
-========================= */
 function showImage(callback) {
     const img = document.getElementById("mapImage");
     img.src = images[current];
 
     img.onload = () => {
+        debug("Image loaded: " + img.naturalWidth + "x" + img.naturalHeight);
         setTimeout(() => {
             resizeCanvas();
             if (callback) callback();
-        }, 100);
+        }, 150);
     };
 
-    // Handle cached images
     if (img.complete && img.naturalWidth !== 0) {
+        debug("Image was cached");
         setTimeout(() => {
             resizeCanvas();
             if (callback) callback();
-        }, 100);
+        }, 150);
     }
 }
 
-/* =========================
-   UI
-========================= */
 function goToRoom() {
     const input = document.getElementById("roomInput").value.trim();
     const message = document.getElementById("floorMessage");
 
     if (!rooms[input]) {
         message.textContent = "Room not found.";
+        debug("Room not found: " + input);
         return;
     }
 
@@ -334,13 +335,11 @@ function goToRoom() {
     message.textContent = "Navigating to room " + input;
 }
 
-// Redraw on window resize so lines stay aligned
 window.addEventListener("resize", () => {
     resizeCanvas();
     drawAll(currentRoom);
 });
 
-/* INIT */
 connectRooms();
 showImage(() => {
     drawAll(null);
