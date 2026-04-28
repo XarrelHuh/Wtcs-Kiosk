@@ -99,16 +99,16 @@ img {
 <script>
 
 let images = ["floor1.png", "floor2.png", "floor3.png"];
-let current = 1;
+let current = 0;
 
 /* =========================
    HALLWAY GRAPH
 ========================= */
 const nodes = {
     A: { x: 0.148, y: 0.499, neighbors: ["B"] },
-    B: { x: 0.150, y: 0.201, neighbors: ["A", "C", "START"] }, // ← added START
-    C: { x: 0.372, y: 0.187, neighbors: ["B", "D", "START"] }, // ← added START
-    START: { x: 0.256, y: 0.220, neighbors: ["B", "C"] },      // ← new node at your position
+    B: { x: 0.150, y: 0.201, neighbors: ["A", "C", "START"] },
+    C: { x: 0.372, y: 0.187, neighbors: ["B", "D", "START"] },
+    START: { x: 0.256, y: 0.220, neighbors: ["B", "C"] },
     D: { x: 0.375, y: 0.273, neighbors: ["C", "E"] },
     E: { x: 0.410, y: 0.279, neighbors: ["D", "F"] },
     F: { x: 0.411, y: 0.350, neighbors: ["E", "G"] },
@@ -218,78 +218,95 @@ function shortestPath(start, end) {
     return path;
 }
 
-function getClosestNode(pos) {
-    let closest = null;
-    let min = Infinity;
-
-    for (let n in nodes) {
-        let d = dist(pos, nodes[n]);
-        if (d < min) {
-            min = d;
-            closest = n;
-        }
-    }
-
-    return closest;
-}
-
-function drawPath(roomId) {
+function drawAll(roomId) {
     const canvas = document.getElementById("mapCanvas");
     const ctx = canvas.getContext("2d");
 
-    drawYouAreHere();
+    // Clear once
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const room = rooms[roomId];
-    if (!room) return;
+    // Draw "You are here" marker
+    const pos = positions[current];
+    if (pos) {
+        const x = pos.x * canvas.width;
+        const y = pos.y * canvas.height;
 
-    const startPos = positions[current];
-    const startNode = "START"; // ← was hardcoded "B", now uses the entrance node
-    const endNode = room.node;
+        ctx.fillStyle = "red";
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - 10, y - 20);
+        ctx.lineTo(x + 10, y - 20);
+        ctx.closePath();
+        ctx.fill();
 
-    const path = shortestPath(startNode, endNode);
-
-    ctx.strokeStyle = "blue";
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-
-    // START FROM YOU
-    ctx.moveTo(startPos.x * canvas.width, startPos.y * canvas.height);
-
-    // follow hallway nodes
-    for (let n of path) {
-        let p = nodes[n];
-        ctx.lineTo(p.x * canvas.width, p.y * canvas.height);
+        ctx.fillStyle = "black";
+        ctx.font = "14px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("You are here", x, y - 30);
     }
 
-    // go to room
-    ctx.lineTo(room.x * canvas.width, room.y * canvas.height);
+    // Draw path if a room is given
+    if (roomId) {
+        const room = rooms[roomId];
+        if (!room) return;
 
-    ctx.stroke();
+        const startNode = "START";
+        const endNode = room.node;
+        const path = shortestPath(startNode, endNode);
+
+        const startPos = positions[current];
+
+        ctx.strokeStyle = "blue";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+
+        ctx.moveTo(startPos.x * canvas.width, startPos.y * canvas.height);
+
+        for (let n of path) {
+            let p = nodes[n];
+            ctx.lineTo(p.x * canvas.width, p.y * canvas.height);
+        }
+
+        ctx.lineTo(room.x * canvas.width, room.y * canvas.height);
+        ctx.stroke();
+
+        // Draw a circle at the destination room
+        ctx.fillStyle = "blue";
+        ctx.beginPath();
+        ctx.arc(room.x * canvas.width, room.y * canvas.height, 8, 0, Math.PI * 2);
+        ctx.fill();
+    }
 }
+
 /* ========================= UI ========================= */
 
 const positions = {
-    1: { x: 0.256, y: 0.220 },
-    2: { x: 0.296, y: 0.119 }
+    0: { x: 0.256, y: 0.220 },
+    1: { x: 0.296, y: 0.119 }
 };
 
-function showImage() {
+function showImage(callback) {
     const img = document.getElementById("mapImage");
-
     img.src = images[current];
 
     img.onload = () => {
         resizeCanvas();
-        drawYouAreHere();
+        if (callback) callback();
     };
+
+    // If image is already cached and loaded
+    if (img.complete && img.naturalWidth !== 0) {
+        resizeCanvas();
+        if (callback) callback();
+    }
 }
 
 function resizeCanvas() {
     const canvas = document.getElementById("mapCanvas");
     const img = document.getElementById("mapImage");
 
-    canvas.width = img.clientWidth;
-    canvas.height = img.clientHeight;
+    canvas.width = img.clientWidth || window.innerWidth;
+    canvas.height = img.clientHeight || window.innerHeight;
 }
 
 function goToRoom() {
@@ -301,45 +318,20 @@ function goToRoom() {
         return;
     }
 
-    current = 1;
-    showImage();
+    current = 0;
 
-    setTimeout(() => {
-        drawPath(input);
-    }, 200);
+    showImage(() => {
+        drawAll(input);
+    });
 
     message.textContent = "Navigating to room " + input;
 }
 
-function drawYouAreHere() {
-    const canvas = document.getElementById("mapCanvas");
-    const ctx = canvas.getContext("2d");
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    const pos = positions[current];
-    if (!pos) return;
-
-    const x = pos.x * canvas.width;
-    const y = pos.y * canvas.height;
-
-    ctx.fillStyle = "red";
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x - 10, y - 20);
-    ctx.lineTo(x + 10, y - 20);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = "black";
-    ctx.font = "14px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("You are here", x, y - 30);
-}
-
 /* INIT */
 connectRooms();
-showImage();
+showImage(() => {
+    drawAll(null);
+});
 
 </script>
 
