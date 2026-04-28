@@ -57,8 +57,7 @@ img {
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    pointer-events: none;
 }
 
 .bottomUI {
@@ -100,6 +99,7 @@ img {
 
 let images = ["floor1.png", "floor2.png", "floor3.png"];
 let current = 0;
+let currentRoom = null;
 
 /* =========================
    HALLWAY GRAPH
@@ -158,7 +158,14 @@ const rooms = {
     "274B": { x: 0.752, y: 0.365 }
 };
 
-/* ========================= */
+const positions = {
+    0: { x: 0.256, y: 0.220 },
+    1: { x: 0.296, y: 0.119 }
+};
+
+/* =========================
+   HELPERS
+========================= */
 function dist(a, b) {
     return Math.hypot(a.x - b.x, a.y - b.y);
 }
@@ -167,15 +174,10 @@ function connectRooms() {
     for (let r in rooms) {
         let closest = null;
         let min = Infinity;
-
         for (let n in nodes) {
             let d = dist(rooms[r], nodes[n]);
-            if (d < min) {
-                min = d;
-                closest = n;
-            }
+            if (d < min) { min = d; closest = n; }
         }
-
         rooms[r].node = closest;
     }
 }
@@ -192,14 +194,11 @@ function shortestPath(start, end) {
         let currentNode = [...unvisited].reduce((a, b) =>
             distMap[a] < distMap[b] ? a : b
         );
-
         if (currentNode === end) break;
-
         unvisited.delete(currentNode);
 
         for (let neighbor of nodes[currentNode].neighbors) {
             let alt = distMap[currentNode] + dist(nodes[currentNode], nodes[neighbor]);
-
             if (alt < distMap[neighbor]) {
                 distMap[neighbor] = alt;
                 prev[neighbor] = currentNode;
@@ -209,23 +208,33 @@ function shortestPath(start, end) {
 
     let path = [];
     let u = end;
-
-    while (u) {
-        path.unshift(u);
-        u = prev[u];
-    }
-
+    while (u) { path.unshift(u); u = prev[u]; }
     return path;
+}
+
+/* =========================
+   CANVAS
+========================= */
+function resizeCanvas() {
+    const canvas = document.getElementById("mapCanvas");
+    const img = document.getElementById("mapImage");
+    const rect = img.getBoundingClientRect();
+
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    canvas.style.top = rect.top + "px";
+    canvas.style.left = rect.left + "px";
+    canvas.style.width = rect.width + "px";
+    canvas.style.height = rect.height + "px";
 }
 
 function drawAll(roomId) {
     const canvas = document.getElementById("mapCanvas");
     const ctx = canvas.getContext("2d");
 
-    // Clear once
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw "You are here" marker
+    // Draw You Are Here marker
     const pos = positions[current];
     if (pos) {
         const x = pos.x * canvas.width;
@@ -239,93 +248,97 @@ function drawAll(roomId) {
         ctx.closePath();
         ctx.fill();
 
-        ctx.fillStyle = "black";
-        ctx.font = "14px sans-serif";
+        ctx.fillStyle = "white";
+        ctx.font = "bold 13px Inter, sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText("You are here", x, y - 30);
+        ctx.fillText("You are here", x, y - 25);
     }
 
-    // Draw path if a room is given
-    if (roomId) {
+    // Draw path
+    if (roomId && rooms[roomId]) {
         const room = rooms[roomId];
-        if (!room) return;
-
         const startNode = "START";
         const endNode = room.node;
         const path = shortestPath(startNode, endNode);
-
         const startPos = positions[current];
 
-        ctx.strokeStyle = "blue";
-        ctx.lineWidth = 4;
+        ctx.strokeStyle = "#4f46e5";
+        ctx.lineWidth = 5;
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
         ctx.beginPath();
-
         ctx.moveTo(startPos.x * canvas.width, startPos.y * canvas.height);
 
         for (let n of path) {
-            let p = nodes[n];
-            ctx.lineTo(p.x * canvas.width, p.y * canvas.height);
+            ctx.lineTo(nodes[n].x * canvas.width, nodes[n].y * canvas.height);
         }
 
         ctx.lineTo(room.x * canvas.width, room.y * canvas.height);
         ctx.stroke();
 
-        // Draw a circle at the destination room
-        ctx.fillStyle = "blue";
+        // Destination dot
+        ctx.fillStyle = "#4f46e5";
         ctx.beginPath();
         ctx.arc(room.x * canvas.width, room.y * canvas.height, 8, 0, Math.PI * 2);
         ctx.fill();
+
+        ctx.fillStyle = "white";
+        ctx.font = "bold 13px Inter, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Room " + roomId, room.x * canvas.width, room.y * canvas.height - 14);
     }
 }
 
-/* ========================= UI ========================= */
-
-const positions = {
-    0: { x: 0.256, y: 0.220 },
-    1: { x: 0.296, y: 0.119 }
-};
-
+/* =========================
+   IMAGE LOADING
+========================= */
 function showImage(callback) {
     const img = document.getElementById("mapImage");
     img.src = images[current];
 
     img.onload = () => {
-        resizeCanvas();
-        if (callback) callback();
+        setTimeout(() => {
+            resizeCanvas();
+            if (callback) callback();
+        }, 100);
     };
 
-    // If image is already cached and loaded
+    // Handle cached images
     if (img.complete && img.naturalWidth !== 0) {
-        resizeCanvas();
-        if (callback) callback();
+        setTimeout(() => {
+            resizeCanvas();
+            if (callback) callback();
+        }, 100);
     }
 }
 
-function resizeCanvas() {
-    const canvas = document.getElementById("mapCanvas");
-    const img = document.getElementById("mapImage");
-
-    canvas.width = img.clientWidth || window.innerWidth;
-    canvas.height = img.clientHeight || window.innerHeight;
-}
-
+/* =========================
+   UI
+========================= */
 function goToRoom() {
-    let input = document.getElementById("roomInput").value.trim();
-    let message = document.getElementById("floorMessage");
+    const input = document.getElementById("roomInput").value.trim();
+    const message = document.getElementById("floorMessage");
 
     if (!rooms[input]) {
         message.textContent = "Room not found.";
         return;
     }
 
+    currentRoom = input;
     current = 0;
 
     showImage(() => {
-        drawAll(input);
+        drawAll(currentRoom);
     });
 
     message.textContent = "Navigating to room " + input;
 }
+
+// Redraw on window resize so lines stay aligned
+window.addEventListener("resize", () => {
+    resizeCanvas();
+    drawAll(currentRoom);
+});
 
 /* INIT */
 connectRooms();
@@ -334,6 +347,5 @@ showImage(() => {
 });
 
 </script>
-
 </body>
 </html>
