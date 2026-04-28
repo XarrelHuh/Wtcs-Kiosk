@@ -242,7 +242,7 @@ function drawPath(roomId) {
     if (!room) return;
 
     const startPos = positions[current];
-    const startNode = "B";
+    const startNode = getClosestNode(startPos); // ← dynamic instead of hardcoded "B"
     const endNode = room.node;
 
     const path = shortestPath(startNode, endNode);
@@ -254,11 +254,7 @@ function drawPath(roomId) {
     // START FROM YOU
     ctx.moveTo(startPos.x * canvas.width, startPos.y * canvas.height);
 
-    // go to hallway
-    let first = nodes[path[0]];
-    ctx.lineTo(first.x * canvas.width, first.y * canvas.height);
-
-    // follow hallway
+    // follow hallway nodes
     for (let n of path) {
         let p = nodes[n];
         ctx.lineTo(p.x * canvas.width, p.y * canvas.height);
@@ -269,7 +265,6 @@ function drawPath(roomId) {
 
     ctx.stroke();
 }
-
 /* ========================= UI ========================= */
 
 const positions = {
@@ -349,4 +344,3 @@ showImage();
 
 </body>
 </html>
-
