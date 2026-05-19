@@ -1,95 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
 <meta charset="UTF-8">
 <title>School Map Navigation</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Public+Sans&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 
 <style>
-body {
-    font-family: 'Inter', sans-serif;
-    margin: 0;
-    background: #000;
-    overflow: hidden;
+
+body{
+    font-family:'Inter',sans-serif;
+    margin:0;
+    background:#000;
+    overflow:hidden;
 }
 
-.topUI {
-    position: absolute;
-    top: 15px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 10;
-    display: flex;
-    gap: 8px;
+.topUI{
+    position:absolute;
+    top:15px;
+    left:50%;
+    transform:translateX(-50%);
+    z-index:10;
+    display:flex;
+    gap:8px;
 }
 
-input {
-    padding: 10px;
-    font-size: 16px;
-    border-radius: 8px;
-    border: none;
+input,button{
+    padding:10px;
+    font-size:16px;
+    border-radius:8px;
+    border:none;
 }
 
-button {
-    padding: 10px 14px;
-    border: none;
-    border-radius: 8px;
-    background: #4f46e5;
-    color: white;
-    cursor: pointer;
+button{
+    background:#4f46e5;
+    color:white;
+    cursor:pointer;
 }
 
-.container {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
+.container{
+    position:relative;
+    width:100vw;
+    height:100vh;
 }
 
-img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
+img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
 }
 
-#mapCanvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+#mapCanvas{
+    position:absolute;
+    top:0;
+    left:0;
 }
 
-.bottomUI {
-    position: absolute;
-    bottom: 15px;
-    left: 50%;
-    transform: translateX(-50%);
-    text-align: center;
-    color: white;
-    z-index: 10;
+.bottomUI{
+    position:absolute;
+    bottom:15px;
+    left:50%;
+    transform:translateX(-50%);
+    color:white;
 }
 
-#floorMessage {
-    margin-top: 5px;
-    background: rgba(0,0,0,0.5);
-    padding: 8px 12px;
-    border-radius: 6px;
-}
 </style>
 </head>
 
 <body>
 
 <div class="topUI">
-    <input type="text" id="roomInput" placeholder="Enter room (e.g. 203)">
+
+    <input
+        type="text"
+        id="roomInput"
+        placeholder="Enter room"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+    >
+
     <button onclick="goToRoom()">Go</button>
+
 </div>
 
 <div class="container">
+
     <img id="mapImage">
+
     <canvas id="mapCanvas"></canvas>
+
 </div>
 
 <div class="bottomUI">
@@ -98,251 +99,581 @@ img {
 
 <script>
 
-let images = ["floor1.png", "floor2.png", "floor3.png"];
+/* =========================
+   FLOOR IMAGES
+========================= */
+
+let images = [
+    "floor1.png",
+    "floor2.png",
+    "floor3.png"
+];
+
 let current = 1;
 
 /* =========================
-   HALLWAY GRAPH
+   FLOOR 1
 ========================= */
-const nodes = {
-    A: { x: 0.148, y: 0.499, neighbors: ["B"] },
-    B: { x: 0.150, y: 0.201, neighbors: ["A", "C", "START"] }, // ← added START
-    C: { x: 0.372, y: 0.187, neighbors: ["B", "D", "START"] }, // ← added START
-    START: { x: 0.256, y: 0.220, neighbors: ["B", "C"] },      // ← new node at your position
-    D: { x: 0.375, y: 0.273, neighbors: ["C", "E"] },
-    E: { x: 0.410, y: 0.279, neighbors: ["D", "F"] },
-    F: { x: 0.411, y: 0.350, neighbors: ["E", "G"] },
-    G: { x: 0.486, y: 0.350, neighbors: ["F", "H", "I"] },
-    H: { x: 0.496, y: 0.363, neighbors: ["G", "J", "L"] },
-    I: { x: 0.497, y: 0.142, neighbors: ["G"] },
-    J: { x: 0.478, y: 0.683, neighbors: ["H", "K"] },
-    K: { x: 0.634, y: 0.714, neighbors: ["J"] },
-    L: { x: 0.644, y: 0.378, neighbors: ["H", "M"] },
-    M: { x: 0.770, y: 0.400, neighbors: ["L"] }
+
+const nodesFloor1 = {
+    START:{x:0.353,y:0.227,neighbors:["B","C"]},
+    A:{x:0.185,y:0.528,neighbors:["B"]},
+    B:{x:0.190,y:0.210,neighbors:["A","START"]},
+    C:{x:0.450,y:0.212,neighbors:["START","D"]},
+    D:{x:0.451,y:0.376,neighbors:["C","E","F"]},
+    E:{x:0.488,y:0.650,neighbors:["D","K"]},
+    F:{x:0.525,y:0.373,neighbors:["D","G","I"]},
+    G:{x:0.531,y:0.390,neighbors:["F","H"]},
+    H:{x:0.528,y:0.275,neighbors:["G","C"]},
+    I:{x:0.676,y:0.429,neighbors:["F","J","K"]},
+    J:{x:0.787,y:0.442,neighbors:["I"]},
+    K:{x:0.662,y:0.734,neighbors:["I","E"]}
+};
+
+const roomsFloor1 = {
+    "137": {x:0.169,y:0.367},
+    "138": {x:0.172,y:0.206},
+    "140": {x:0.209,y:0.249},
+    "145": {x:0.259,y:0.243},
+    "149": {x:0.325,y:0.180},
+    "150": {x:0.330,y:0.237},
+    "151": {x:0.344,y:0.237},
+    "153": {x:0.381,y:0.245},
+    "153A": {x:0.399,y:0.239},
+    "154": {x:0.415,y:0.240},
+    "159": {x:0.434,y:0.335},
+    "160": {x:0.460,y:0.342},
+    "102": {x:0.477,y:0.465},
+    "108": {x:0.435,y:0.588},
+    "107": {x:0.461,y:0.580},
+    "109": {x:0.468,y:0.660},
+    "165": {x:0.533,y:0.235},
+    "166": {x:0.576,y:0.275},
+    "167": {x:0.539,y:0.433},
+    "169": {x:0.574,y:0.358},
+    "170": {x:0.610,y:0.452},
+    "171": {x:0.624,y:0.367},
+    "172": {x:0.653,y:0.455},
+    "173": {x:0.679,y:0.383},
+    "174A": {x:0.710,y:0.390},
+    "174B": {x:0.748,y:0.396},
+    "176": {x:0.784,y:0.399},
+    "177": {x:0.803,y:0.447},
+    "178": {x:0.701,y:0.463},
+    "179": {x:0.701,y:0.581},
+    "181": {x:0.671,y:0.770},
+    "182": {x:0.695,y:0.768}
 };
 
 /* =========================
-   ROOMS
+   FLOOR 2
 ========================= */
-const rooms = {
-    "248": { x: 0.278, y: 0.161 },
-    "249": { x: 0.286, y: 0.214 },
-    "250": { x: 0.312, y: 0.217 },
-    "251": { x: 0.338, y: 0.204 },
-    "252": { x: 0.335, y: 0.157 },
-    "253": { x: 0.384, y: 0.170 },
-    "254": { x: 0.383, y: 0.193 },
-    "263": { x: 0.430, y: 0.319 },
-    "268": { x: 0.504, y: 0.141 },
-    "271": { x: 0.501, y: 0.259 },
-    "271A": { x: 0.504, y: 0.332 },
-    "273": { x: 0.545, y: 0.388 },
-    "266": { x: 0.524, y: 0.383 },
-    "266A": { x: 0.504, y: 0.472 },
-    "266B": { x: 0.503, y: 0.515 },
-    "278A": { x: 0.642, y: 0.393 },
-    "278B": { x: 0.629, y: 0.488 },
-    "279A": { x: 0.536, y: 0.557 },
-    "279B": { x: 0.582, y: 0.564 },
-    "209": { x: 0.508, y: 0.676 },
-    "207": { x: 0.544, y: 0.681 },
-    "205": { x: 0.579, y: 0.682 },
-    "203": { x: 0.618, y: 0.691 },
-    "210A": { x: 0.481, y: 0.715 },
-    "210": { x: 0.506, y: 0.718 },
-    "208": { x: 0.521, y: 0.718 },
-    "206": { x: 0.560, y: 0.727 },
-    "204": { x: 0.596, y: 0.735 },
-    "202": { x: 0.635, y: 0.737 },
-    "274A": { x: 0.741, y: 0.367 },
-    "274B": { x: 0.752, y: 0.365 }
+
+const nodesFloor2 = {
+    START:{x:0.256,y:0.220,neighbors:["B","C"]},
+    A:{x:0.148,y:0.499,neighbors:["B"]},
+    B:{x:0.150,y:0.201,neighbors:["A","C","START"]},
+    C:{x:0.372,y:0.187,neighbors:["B","D","START"]},
+    D:{x:0.375,y:0.273,neighbors:["C","E"]},
+    E:{x:0.410,y:0.279,neighbors:["D","F"]},
+    F:{x:0.411,y:0.350,neighbors:["E","G"]},
+    G:{x:0.486,y:0.350,neighbors:["F","H","I"]},
+    H:{x:0.496,y:0.363,neighbors:["G","J","L"]},
+    I:{x:0.497,y:0.142,neighbors:["G"]},
+    J:{x:0.478,y:0.683,neighbors:["H","K"]},
+    K:{x:0.634,y:0.714,neighbors:["J"]},
+    L:{x:0.644,y:0.378,neighbors:["H","M"]},
+    M:{x:0.770,y:0.400,neighbors:["L"]}
+};
+
+const roomsFloor2 = {
+    "248": {x:0.278,y:0.161},
+    "249": {x:0.286,y:0.214},
+    "250": {x:0.312,y:0.217},
+    "251": {x:0.338,y:0.204},
+    "252": {x:0.335,y:0.157},
+    "253": {x:0.384,y:0.170},
+    "254": {x:0.383,y:0.193},
+    "263": {x:0.430,y:0.319},
+    "268": {x:0.504,y:0.141},
+    "271": {x:0.501,y:0.259},
+    "271A": {x:0.504,y:0.332},
+    "273": {x:0.545,y:0.388},
+    "266": {x:0.524,y:0.383},
+    "266A": {x:0.504,y:0.472},
+    "266B": {x:0.503,y:0.515},
+    "278A": {x:0.642,y:0.393},
+    "278B": {x:0.629,y:0.488},
+    "279A": {x:0.536,y:0.557},
+    "279B": {x:0.582,y:0.564},
+    "209": {x:0.508,y:0.676},
+    "207": {x:0.544,y:0.681},
+    "205": {x:0.579,y:0.682},
+    "203": {x:0.618,y:0.691},
+    "210A": {x:0.481,y:0.715},
+    "210": {x:0.506,y:0.718},
+    "208": {x:0.521,y:0.718},
+    "206": {x:0.560,y:0.727},
+    "204": {x:0.596,y:0.735},
+    "202": {x:0.635,y:0.737},
+    "274A": {x:0.741,y:0.367},
+    "274B": {x:0.752,y:0.365}
+};
+
+/* =========================
+   FLOOR 3
+========================= */
+
+const nodesFloor3 = {
+    START:{x:0.254,y:0.134,neighbors:["B","C"]},
+    A:{x:0.129,y:0.466,neighbors:["B"]},
+    B:{x:0.131,y:0.134,neighbors:["A","START"]},
+    C:{x:0.375,y:0.128,neighbors:["START","D"]},
+    D:{x:0.376,y:0.223,neighbors:["C","E"]},
+    E:{x:0.415,y:0.229,neighbors:["D","F"]},
+    F:{x:0.414,y:0.301,neighbors:["E","G","H"]},
+    G:{x:0.418,y:0.584,neighbors:["F"]},
+    H:{x:0.499,y:0.306,neighbors:["F","I"]},
+    I:{x:0.506,y:0.148,neighbors:["H","J"]},
+    J:{x:0.598,y:0.160,neighbors:["I","K"]},
+    K:{x:0.598,y:0.224,neighbors:["J","L","M"]},
+    L:{x:0.596,y:0.309,neighbors:["K"]},
+    M:{x:0.792,y:0.260,neighbors:["K","N"]},
+    N:{x:0.860,y:0.367,neighbors:["M"]}
+};
+
+const roomsFloor3 = { 
+"315": {x:0.427,y:0.488}, 
+"350": {x:0.169,y:0.170}, 
+"351": {x:0.173,y:0.094}, 
+"352": {x:0.196,y:0.167}, 
+"354": {x:0.213,y:0.091}, 
+"355": {x:0.230,y:0.089}, 
+"361": {x:0.297,y:0.158}, 
+"362": {x:0.323,y:0.160}, 
+"363": {x:0.297,y:0.085}, 
+"364": {x:0.335,y:0.083}, 
+"365": {x:0.358,y:0.160}, 
+"366": {x:0.394,y:0.109}, 
+"367": {x:0.394,y:0.135}, 
+"369": {x:0.430,y:0.367}, 
+"370": {x:0.450,y:0.263}, 
+"375": {x:0.508,y:0.354}, 
+"376": {x:0.515,y:0.273}, 
+"377": {x:0.506,y:0.112}, 
+"378": {x:0.518,y:0.178}, 
+"379": {x:0.556,y:0.122}, 
+"380": {x:0.582,y:0.220}, 
+"381": {x:0.697,y:0.108}, 
+"382": {x:0.580,y:0.294}, 
+"383": {x:0.640,y:0.200}, 
+"384": {x:0.646,y:0.263}, 
+"385": {x:0.684,y:0.204}, 
+"386": {x:0.697,y:0.266}, 
+"387": {x:0.726,y:0.212}, 
+"388": {x:0.732,y:0.278}, 
+"389": {x:0.771,y:0.283}, 
+"390": {x:0.774,y:0.217}, 
+"391": {x:0.787,y:0.220}, 
+"392": {x:0.795,y:0.295}, 
+"393": {x:0.797,y:0.368} 
 };
 
 /* ========================= */
-function dist(a, b) {
-    return Math.hypot(a.x - b.x, a.y - b.y);
+
+function getNodes(){
+    if(current===1) return nodesFloor1;
+    if(current===2) return nodesFloor2;
+    return nodesFloor3;
 }
 
-function connectRooms() {
-    for (let r in rooms) {
-        let closest = null;
-        let min = Infinity;
+function getRooms(){
+    if(current===1) return roomsFloor1;
+    if(current===2) return roomsFloor2;
+    return roomsFloor3;
+}
 
-        for (let n in nodes) {
-            let d = dist(rooms[r], nodes[n]);
-            if (d < min) {
-                min = d;
-                closest = n;
+function dist(a,b){
+    return Math.hypot(a.x-b.x,a.y-b.y);
+}
+
+/* =========================
+   SEGMENT PROJECTION
+========================= */
+
+function pointToSegmentDistance(px,py,x1,y1,x2,y2){
+
+    const A=px-x1;
+    const B=py-y1;
+    const C=x2-x1;
+    const D=y2-y1;
+
+    const dot=A*C+B*D;
+    const lenSq=C*C+D*D;
+
+    let param=-1;
+
+    if(lenSq!==0){
+        param=dot/lenSq;
+    }
+
+    let xx,yy;
+
+    if(param<0){
+        xx=x1;
+        yy=y1;
+    }
+    else if(param>1){
+        xx=x2;
+        yy=y2;
+    }
+    else{
+        xx=x1+param*C;
+        yy=y1+param*D;
+    }
+
+    return{
+        dist:Math.hypot(px-xx,py-yy),
+        x:xx,
+        y:yy
+    };
+}
+
+/* =========================
+   CONNECT ROOMS
+========================= */
+
+function connectRooms(nodes,rooms){
+
+    for(let r in rooms){
+
+        let bestProjection=null;
+        let bestDist=Infinity;
+        let bestSegment=null;
+
+        for(let n in nodes){
+
+            for(let nb of nodes[n].neighbors){
+
+                const a=nodes[n];
+                const b=nodes[nb];
+
+                const proj=pointToSegmentDistance(
+                    rooms[r].x,
+                    rooms[r].y,
+                    a.x,
+                    a.y,
+                    b.x,
+                    b.y
+                );
+
+                if(proj.dist<bestDist){
+
+                    bestDist=proj.dist;
+
+                    bestProjection={
+                        x:proj.x,
+                        y:proj.y
+                    };
+
+                    bestSegment=[n,nb];
+                }
             }
         }
 
-        rooms[r].node = closest;
+        rooms[r].segment=bestSegment;
+        rooms[r].hallwayPoint=bestProjection;
     }
 }
 
-function shortestPath(start, end) {
-    let distMap = {};
-    let prev = {};
-    let unvisited = new Set(Object.keys(nodes));
+connectRooms(nodesFloor1,roomsFloor1);
+connectRooms(nodesFloor2,roomsFloor2);
+connectRooms(nodesFloor3,roomsFloor3);
 
-    for (let n of unvisited) distMap[n] = Infinity;
-    distMap[start] = 0;
+/* =========================
+   PATHFINDING
+========================= */
 
-    while (unvisited.size) {
-        let currentNode = [...unvisited].reduce((a, b) =>
-            distMap[a] < distMap[b] ? a : b
+function shortestPath(start,end,nodes){
+
+    let distMap={},prev={},unvisited=new Set(Object.keys(nodes));
+
+    for(let n of unvisited){
+        distMap[n]=Infinity;
+    }
+
+    distMap[start]=0;
+
+    while(unvisited.size){
+
+        let cur=[...unvisited].reduce((a,b)=>
+            distMap[a]<distMap[b]?a:b
         );
 
-        if (currentNode === end) break;
+        if(cur===end) break;
 
-        unvisited.delete(currentNode);
+        unvisited.delete(cur);
 
-        for (let neighbor of nodes[currentNode].neighbors) {
-            let alt = distMap[currentNode] + dist(nodes[currentNode], nodes[neighbor]);
+        for(let nb of nodes[cur].neighbors){
 
-            if (alt < distMap[neighbor]) {
-                distMap[neighbor] = alt;
-                prev[neighbor] = currentNode;
+            let alt=distMap[cur]+dist(nodes[cur],nodes[nb]);
+
+            if(alt<distMap[nb]){
+                distMap[nb]=alt;
+                prev[nb]=cur;
             }
         }
     }
 
-    let path = [];
-    let u = end;
+    let path=[],u=end;
 
-    while (u) {
+    while(u){
         path.unshift(u);
-        u = prev[u];
+        u=prev[u];
     }
 
     return path;
 }
 
-function getClosestNode(pos) {
-    let closest = null;
-    let min = Infinity;
+function pathLength(path,nodes){
 
-    for (let n in nodes) {
-        let d = dist(pos, nodes[n]);
-        if (d < min) {
-            min = d;
-            closest = n;
-        }
+    let total=0;
+
+    for(let i=0;i<path.length-1;i++){
+
+        total+=dist(
+            nodes[path[i]],
+            nodes[path[i+1]]
+        );
     }
 
-    return closest;
+    return total;
 }
 
-function drawPath(roomId) {
-    const canvas = document.getElementById("mapCanvas");
-    const ctx = canvas.getContext("2d");
+/* =========================
+   UI
+========================= */
 
-    drawYouAreHere();
+const positions={
+    1:{x:0.353,y:0.227},
+    2:{x:0.256,y:0.220},
+    3:{x:0.254,y:0.134}
+};
 
-    const room = rooms[roomId];
-    if (!room) return;
+function showImage(){
 
-    const startPos = positions[current];
-    const startNode = "START"; // ← was hardcoded "B", now uses the entrance node
-    const endNode = room.node;
+    const img=document.getElementById("mapImage");
 
-    const path = shortestPath(startNode, endNode);
+    img.src=images[current-1];
 
-    ctx.strokeStyle = "blue";
-    ctx.lineWidth = 4;
+    img.onload=()=>resizeCanvas();
+}
+
+function resizeCanvas(){
+
+    const canvas=document.getElementById("mapCanvas");
+    const img=document.getElementById("mapImage");
+
+    canvas.width=img.clientWidth;
+    canvas.height=img.clientHeight;
+
+    drawYou();
+}
+
+function drawYou(){
+
+    const c=document.getElementById("mapCanvas");
+    const ctx=c.getContext("2d");
+
+    ctx.clearRect(0,0,c.width,c.height);
+
+    let p=positions[current];
+
+    let x=p.x*c.width;
+    let y=p.y*c.height;
+
+    ctx.fillStyle="red";
+
     ctx.beginPath();
 
-    // START FROM YOU
-    ctx.moveTo(startPos.x * canvas.width, startPos.y * canvas.height);
+    ctx.moveTo(x,y);
+    ctx.lineTo(x-10,y-20);
+    ctx.lineTo(x+10,y-20);
 
-    // follow hallway nodes
-    for (let n of path) {
-        let p = nodes[n];
-        ctx.lineTo(p.x * canvas.width, p.y * canvas.height);
+    ctx.fill();
+}
+
+function drawPath(roomId){
+
+    const canvas=document.getElementById("mapCanvas");
+    const ctx=canvas.getContext("2d");
+
+    drawYou();
+
+    const rooms=getRooms();
+    const nodes=getNodes();
+
+    const room=rooms[roomId];
+
+    if(!room) return;
+
+    const [segA,segB]=room.segment;
+
+    const pathA=shortestPath("START",segA,nodes);
+    const pathB=shortestPath("START",segB,nodes);
+
+    const path=
+        pathLength(pathA,nodes)<pathLength(pathB,nodes)
+        ? pathA
+        : pathB;
+
+    ctx.strokeStyle="blue";
+    ctx.lineWidth=4;
+
+    ctx.beginPath();
+
+    let start=positions[current];
+
+    ctx.moveTo(
+        start.x*canvas.width,
+        start.y*canvas.height
+    );
+
+    for(let n of path){
+
+        let p=nodes[n];
+
+        ctx.lineTo(
+            p.x*canvas.width,
+            p.y*canvas.height
+        );
     }
 
-    // go to room
-    ctx.lineTo(room.x * canvas.width, room.y * canvas.height);
+    ctx.lineTo(
+        room.hallwayPoint.x*canvas.width,
+        room.hallwayPoint.y*canvas.height
+    );
+
+    ctx.lineTo(
+        room.x*canvas.width,
+        room.y*canvas.height
+    );
 
     ctx.stroke();
 }
-/* ========================= UI ========================= */
 
-const positions = {
-    1: { x: 0.256, y: 0.220 },
-    2: { x: 0.296, y: 0.119 }
-};
+function goToRoom(){
 
-function showImage() {
-    const img = document.getElementById("mapImage");
+    let input=document.getElementById("roomInput")
+        .value
+        .trim()
+        .toUpperCase();
 
-    img.src = images[current];
+    let msg=document.getElementById("floorMessage");
 
-    img.onload = () => {
-        resizeCanvas();
-        drawYouAreHere();
-    };
-}
+    if(roomsFloor1[input]){
+        current=1;
+    }
+    else if(roomsFloor2[input]){
+        current=2;
+    }
+    else if(roomsFloor3[input]){
+        current=3;
+    }
+    else{
+        msg.textContent="Room not found";
 
-function resizeCanvas() {
-    const canvas = document.getElementById("mapCanvas");
-    const img = document.getElementById("mapImage");
+        document.getElementById("roomInput").value="";
 
-    canvas.width = img.clientWidth;
-    canvas.height = img.clientHeight;
-}
+        document.getElementById("roomInput").focus();
 
-function goToRoom() {
-    let input = document.getElementById("roomInput").value.trim();
-    let message = document.getElementById("floorMessage");
-
-    if (!rooms[input]) {
-        message.textContent = "Room not found.";
         return;
     }
 
-    current = 1;
     showImage();
 
-    setTimeout(() => {
+    setTimeout(()=>{
         drawPath(input);
-    }, 200);
+    },200);
 
-    message.textContent = "Navigating to room " + input;
+    msg.textContent="Navigating to "+input;
+
+    document.getElementById("roomInput").value="";
+
+    document.getElementById("roomInput").focus();
 }
 
-function drawYouAreHere() {
-    const canvas = document.getElementById("mapCanvas");
-    const ctx = canvas.getContext("2d");
+/* =========================
+   ENTER KEY
+========================= */
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+document.getElementById("roomInput")
+.addEventListener("keydown",(e)=>{
 
-    const pos = positions[current];
-    if (!pos) return;
+    if(e.key==="Enter"){
 
-    const x = pos.x * canvas.width;
-    const y = pos.y * canvas.height;
+        goToRoom();
+    }
+});
 
-    ctx.fillStyle = "red";
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x - 10, y - 20);
-    ctx.lineTo(x + 10, y - 20);
-    ctx.closePath();
-    ctx.fill();
+/* =========================
+   #1 = A
+   #2 = B
+========================= */
 
-    ctx.fillStyle = "black";
-    ctx.font = "14px sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillText("You are here", x, y - 30);
-}
+let hashPressed=false;
 
-/* INIT */
-connectRooms();
+document.addEventListener("keydown",(e)=>{
+
+    const input=document.getElementById("roomInput");
+
+    input.focus();
+
+    if(e.key==="#"){
+
+        hashPressed=true;
+
+        return;
+    }
+
+    if(hashPressed && e.key==="1"){
+
+        e.preventDefault();
+
+        input.value+="A";
+
+        hashPressed=false;
+
+        return;
+    }
+
+    if(hashPressed && e.key==="2"){
+
+        e.preventDefault();
+
+        input.value+="B";
+
+        hashPressed=false;
+
+        return;
+    }
+
+    hashPressed=false;
+});
+
+/* =========================
+   INIT
+========================= */
+
 showImage();
+
+setTimeout(()=>{
+
+    document.getElementById("roomInput").focus();
+
+},300);
 
 </script>
 
 </body>
 </html>
-
