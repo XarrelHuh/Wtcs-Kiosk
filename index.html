@@ -561,28 +561,57 @@ function drawPath(roomId){
 
     if(!room) return;
 
-    const [segA,segB]=room.segment;
+    let nearestNode=null;
+    let nearestDist=Infinity;
 
-    const pathA=shortestPath("START",segA,nodes);
-    const pathB=shortestPath("START",segB,nodes);
+    for(let nodeId in nodes){
 
-    const path=
-        pathLength(pathA,nodes)<pathLength(pathB,nodes)
-        ? pathA
-        : pathB;
+        const d=Math.hypot(
+            room.x-nodes[nodeId].x,
+            room.y-nodes[nodeId].y
+        );
+
+        if(d<nearestDist){
+            nearestDist=d;
+            nearestNode=nodeId;
+        }
+    }
+
+    const path=shortestPath(
+        "START",
+        nearestNode,
+        nodes
+    );
 
     ctx.strokeStyle="blue";
     ctx.lineWidth=4;
 
     ctx.beginPath();
 
-    let start=positions[current];
+    const start=positions[current];
 
     ctx.moveTo(
         start.x*canvas.width,
         start.y*canvas.height
     );
 
+    for(let n of path){
+
+        const p=nodes[n];
+
+        ctx.lineTo(
+            p.x*canvas.width,
+            p.y*canvas.height
+        );
+    }
+
+    ctx.lineTo(
+        room.x*canvas.width,
+        room.y*canvas.height
+    );
+
+    ctx.stroke();
+}
     for(let n of path){
 
         let p=nodes[n];
