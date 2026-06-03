@@ -1,230 +1,725 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
 <meta charset="UTF-8">
 <title>School Map Navigation</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Public+Sans&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 
 <style>
-body {
-    font-family: 'Inter', sans-serif;
-    margin: 0;
-    background: #000;
-    overflow: hidden;
+
+body{
+    font-family:'Inter',sans-serif;
+    margin:0;
+    background:#000;
+    overflow:hidden;
 }
 
-/* Top UI */
-.topUI {
-    position: absolute;
-    top: 15px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 10;
-    display: flex;
-    gap: 8px;
+.topUI{
+    position:absolute;
+    top:15px;
+    left:50%;
+    transform:translateX(-50%);
+    z-index:10;
+    display:flex;
+    gap:8px;
 }
 
-input {
-    padding: 10px;
-    font-size: 16px;
-    border-radius: 8px;
-    border: none;
+input,button{
+    padding:10px;
+    font-size:16px;
+    border-radius:8px;
+    border:none;
 }
 
-button {
-    padding: 10px 14px;
-    border: none;
-    border-radius: 8px;
-    background: #4f46e5;
-    color: white;
-    cursor: pointer;
+button{
+    background:#4f46e5;
+    color:white;
+    cursor:pointer;
 }
 
-/* MAP */
-.container {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
+.container{
+    position:relative;
+    width:100vw;
+    height:100vh;
 }
 
-img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
+img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
 }
 
-/* Canvas */
-#mapCanvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: auto;
+#mapCanvas{
+    position:absolute;
+    top:0;
+    left:0;
 }
 
-/* Bottom UI */
-.bottomUI {
-    position: absolute;
-    bottom: 15px;
-    left: 50%;
-    transform: translateX(-50%);
-    text-align: center;
-    color: white;
-    z-index: 10;
+.bottomUI{
+    position:absolute;
+    bottom:15px;
+    left:50%;
+    transform:translateX(-50%);
+    color:white;
 }
 
-#floorMessage {
-    margin-top: 5px;
-    background: rgba(0,0,0,0.5);
-    padding: 8px 12px;
-    border-radius: 6px;
-}
 </style>
-
 </head>
 
 <body>
 
-<!-- Top UI -->
 <div class="topUI">
-    <input type="number" id="roomInput" placeholder="Enter room (e.g. 203)">
+
+    <input
+        type="text"
+        id="roomInput"
+        placeholder="Enter room"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+    >
+
     <button onclick="goToRoom()">Go</button>
+
 </div>
 
-<!-- MAP -->
 <div class="container">
+
     <img id="mapImage">
+
     <canvas id="mapCanvas"></canvas>
+
 </div>
 
-<!-- Bottom UI -->
 <div class="bottomUI">
     <div id="floorMessage"></div>
 </div>
 
 <script>
 
-let images = ["floor1.png", "floor2.png", "floor3.png"];
-let current = 0;
+/* =========================
+   FLOOR IMAGES
+========================= */
 
-/* HALLWAY NODES (YOU WILL BUILD THIS IN PROGRESS) */
-const nodes = {};
+let images = [
+    "floor1.png",
+    "floor2.png",
+    "floor3.png"
+];
 
-/* POSITION SETTINGS (CONNECTED WITH THE YOU ARE HERE) */
-const positions = {
-    1: { x: 0.256, y: 0.220 }, // Floor 2
-    2: { x: 0.296, y: 0.119 }  // Floor 3
+let current = 1;
+
+/* =========================
+FLOOR 1
+========================= */
+
+const nodesFloor1 = {
+START:{x:0.203,y:0.206,neighbors:["A"]},
+
+A:{x:0.177,y:0.218,neighbors:["START","B"]},
+B:{x:0.174,y:0.523,neighbors:["A"]},
+
+C:{x:0.487,y:0.378,neighbors:["START","D","E"]},
+
+D:{x:0.486,y:0.647,neighbors:["C"]},
+
+E:{x:0.578,y:0.382,neighbors:["C","F","G"]},
+
+F:{x:0.585,y:0.279,neighbors:["E"]},
+
+G:{x:0.585,y:0.390,neighbors:["E","H","I"]},
+
+H:{x:0.570,y:0.589,neighbors:["G"]},
+
+I:{x:0.756,y:0.424,neighbors:["G","J","K"]},
+
+J:{x:0.894,y:0.445,neighbors:["I"]},
+
+K:{x:0.740,y:0.722,neighbors:["I","L"]},
+
+L:{x:0.796,y:0.740,neighbors:["K"]}
 };
 
-/* LOAD IMAGE */
-function showImage() {
-    const img = document.getElementById("mapImage");
+const roomsFloor1 = {
+"102": {x:0.516,y:0.467},
+"107": {x:0.500,y:0.580},
+"108": {x:0.477,y:0.587},
+"109": {x:0.501,y:0.656},
 
-    img.src = images[current];
+"136": {x:0.195,y:0.318},
+"137": {x:0.156,y:0.295},
+"138": {x:0.157,y:0.220},
 
-    img.onload = () => {
-        resizeCanvas();
-        drawYouAreHere();
+"140": {x:0.202,y:0.260},
+"143": {x:0.220,y:0.254},
+
+"145": {x:0.291,y:0.249},
+"149": {x:0.338,y:0.193},
+"150": {x:0.344,y:0.249},
+"151": {x:0.360,y:0.248},
+
+"153": {x:0.405,y:0.251},
+"153A": {x:0.427,y:0.249},
+"154": {x:0.447,y:0.249},
+
+"159": {x:0.475,y:0.343},
+"160": {x:0.498,y:0.349},
+"160A": {x:0.563,y:0.353},
+
+"165": {x:0.585,y:0.254},
+"166": {x:0.636,y:0.289},
+"167": {x:0.594,y:0.432},
+"169": {x:0.635,y:0.371},
+
+"170": {x:0.679,y:0.441},
+"171": {x:0.692,y:0.373},
+"172": {x:0.730,y:0.454},
+"173": {x:0.758,y:0.384},
+
+"174A": {x:0.795,y:0.384},
+"174B": {x:0.843,y:0.394},
+
+"176": {x:0.883,y:0.411},
+"177": {x:0.905,y:0.451},
+
+"178": {x:0.772,y:0.450},
+"180": {x:0.762,y:0.611},
+
+"181": {x:0.753,y:0.751},
+"182": {x:0.766,y:0.753}
+};
+
+/* =========================
+FLOOR 2
+========================= */
+
+const nodesFloor2 = {
+START:{x:0.203,y:0.206,neighbors:["A"]},
+
+A:{x:0.112,y:0.197,neighbors:["START","B"]},
+B:{x:0.113,y:0.503,neighbors:["A"]},
+
+C:{x:0.394,y:0.180,neighbors:["START","D"]},
+D:{x:0.393,y:0.271,neighbors:["C","E"]},
+E:{x:0.435,y:0.277,neighbors:["D","F"]},
+F:{x:0.438,y:0.349,neighbors:["E","G"]},
+
+G:{x:0.533,y:0.349,neighbors:["F","H","I"]},
+
+H:{x:0.546,y:0.357,neighbors:["G","J","K"]},
+
+I:{x:0.544,y:0.138,neighbors:["G"]},
+
+J:{x:0.523,y:0.688,neighbors:["H","L"]},
+L:{x:0.634,y:0.714,neighbors:["J"]},
+
+K:{x:0.644,y:0.378,neighbors:["H","M"]},
+M:{x:0.770,y:0.400,neighbors:["K"]}
+};
+
+const roomsFloor2 = {
+"248": {x:0.278,y:0.158},
+"249": {x:0.286,y:0.221},
+"250": {x:0.302,y:0.212},
+"251": {x:0.338,y:0.204},
+"252": {x:0.335,y:0.152},
+"253": {x:0.411,y:0.170},
+"254": {x:0.411,y:0.191},
+
+"263": {x:0.463,y:0.311},
+
+"266": {x:0.578,y:0.384},
+"266A": {x:0.559,y:0.473},
+"266B": {x:0.560,y:0.516},
+
+"268": {x:0.562,y:0.142},
+
+"271": {x:0.555,y:0.260},
+"271A": {x:0.557,y:0.321},
+
+"273": {x:0.604,y:0.394},
+
+"274A": {x:0.852,y:0.346},
+"274B": {x:0.861,y:0.365},
+
+"278A": {x:0.674,y:0.398},
+"278B": {x:0.701,y:0.486},
+
+"279A": {x:0.614,y:0.552},
+"279B": {x:0.656,y:0.564},
+
+"209": {x:0.559,y:0.665},
+"207": {x:0.606,y:0.668},
+"205": {x:0.651,y:0.676},
+"203": {x:0.698,y:0.682},
+
+"210A": {x:0.527,y:0.721},
+"210": {x:0.558,y:0.721},
+"208": {x:0.577,y:0.729},
+"206": {x:0.622,y:0.731},
+"204": {x:0.669,y:0.740},
+"202": {x:0.715,y:0.745},
+"202B": {x:0.745,y:0.747}
+};
+
+/* =========================
+FLOOR 3
+========================= */
+
+const nodesFloor3 = {
+START:{x:0.274,y:0.134,neighbors:["B","C"]},
+A:{x:0.149,y:0.466,neighbors:["B"]},
+B:{x:0.151,y:0.134,neighbors:["A","START"]},
+C:{x:0.395,y:0.128,neighbors:["START","D"]},
+D:{x:0.396,y:0.223,neighbors:["C","E"]},
+E:{x:0.435,y:0.229,neighbors:["D","F"]},
+F:{x:0.434,y:0.301,neighbors:["E","G","H"]},
+G:{x:0.438,y:0.584,neighbors:["F"]},
+H:{x:0.519,y:0.306,neighbors:["F","I"]},
+I:{x:0.526,y:0.148,neighbors:["H","J"]},
+J:{x:0.618,y:0.160,neighbors:["I","K"]},
+K:{x:0.618,y:0.224,neighbors:["J","L","M"]},
+L:{x:0.616,y:0.309,neighbors:["K"]},
+M:{x:0.812,y:0.260,neighbors:["K","N"]},
+N:{x:0.880,y:0.367,neighbors:["M"]}
+};
+
+const roomsFloor3 = {
+"315": {x:0.447,y:0.488},
+"350": {x:0.189,y:0.170},
+"351": {x:0.193,y:0.094},
+"352": {x:0.216,y:0.167},
+"354": {x:0.233,y:0.091},
+"355": {x:0.250,y:0.089},
+"361": {x:0.317,y:0.158},
+"362": {x:0.343,y:0.160},
+"363": {x:0.317,y:0.085},
+"364": {x:0.355,y:0.083},
+"365": {x:0.378,y:0.160},
+"366": {x:0.414,y:0.109},
+"367": {x:0.414,y:0.135},
+"369": {x:0.450,y:0.367},
+"370": {x:0.470,y:0.263},
+"375": {x:0.528,y:0.354},
+"376": {x:0.535,y:0.273},
+"377": {x:0.526,y:0.112},
+"378": {x:0.538,y:0.178},
+"379": {x:0.576,y:0.122},
+"380": {x:0.602,y:0.220},
+"381": {x:0.717,y:0.108},
+"382": {x:0.600,y:0.294},
+"383": {x:0.660,y:0.200},
+"384": {x:0.666,y:0.263},
+"385": {x:0.704,y:0.204},
+"386": {x:0.717,y:0.266},
+"387": {x:0.746,y:0.212},
+"388": {x:0.752,y:0.278},
+"389": {x:0.791,y:0.283},
+"390": {x:0.794,y:0.217},
+"391": {x:0.807,y:0.220},
+"392": {x:0.815,y:0.295},
+"393": {x:0.817,y:0.368}
+};
+
+/* ========================= */
+
+function getNodes(){
+    if(current===1) return nodesFloor1;
+    if(current===2) return nodesFloor2;
+    return nodesFloor3;
+}
+
+function getRooms(){
+    if(current===1) return roomsFloor1;
+    if(current===2) return roomsFloor2;
+    return roomsFloor3;
+}
+
+function dist(a,b){
+    return Math.hypot(a.x-b.x,a.y-b.y);
+}
+
+/* =========================
+   SEGMENT PROJECTION
+========================= */
+
+function pointToSegmentDistance(px,py,x1,y1,x2,y2){
+
+    const A=px-x1;
+    const B=py-y1;
+    const C=x2-x1;
+    const D=y2-y1;
+
+    const dot=A*C+B*D;
+    const lenSq=C*C+D*D;
+
+    let param=-1;
+
+    if(lenSq!==0){
+        param=dot/lenSq;
+    }
+
+    let xx,yy;
+
+    if(param<0){
+        xx=x1;
+        yy=y1;
+    }
+    else if(param>1){
+        xx=x2;
+        yy=y2;
+    }
+    else{
+        xx=x1+param*C;
+        yy=y1+param*D;
+    }
+
+    return{
+        dist:Math.hypot(px-xx,py-yy),
+        x:xx,
+        y:yy
     };
 }
 
-/* RESIZE */
-function resizeCanvas() {
-    const canvas = document.getElementById("mapCanvas");
-    const img = document.getElementById("mapImage");
+/* =========================
+   CONNECT ROOMS
+========================= */
 
-    canvas.width = img.clientWidth;
-    canvas.height = img.clientHeight;
+function connectRooms(nodes,rooms){
+
+    for(let r in rooms){
+
+        let bestProjection=null;
+        let bestDist=Infinity;
+        let bestSegment=null;
+
+        for(let n in nodes){
+
+            for(let nb of nodes[n].neighbors){
+
+                const a=nodes[n];
+                const b=nodes[nb];
+
+                const proj=pointToSegmentDistance(
+                    rooms[r].x,
+                    rooms[r].y,
+                    a.x,
+                    a.y,
+                    b.x,
+                    b.y
+                );
+
+                if(proj.dist<bestDist){
+
+                    bestDist=proj.dist;
+
+                    bestProjection={
+                        x:proj.x,
+                        y:proj.y
+                    };
+
+                    bestSegment=[n,nb];
+                }
+            }
+        }
+
+        rooms[r].segment=bestSegment;
+        rooms[r].hallwayPoint=bestProjection;
+    }
 }
 
-/* ENTER KEY */
-document
-    .getElementById("roomInput")
-    .addEventListener("keypress", function (e) {
-        if (e.key === "Enter") {
-            goToRoom();
+connectRooms(nodesFloor1,roomsFloor1);
+connectRooms(nodesFloor2,roomsFloor2);
+connectRooms(nodesFloor3,roomsFloor3);
+
+/* =========================
+   PATHFINDING
+========================= */
+
+function shortestPath(start,end,nodes){
+
+    let distMap={},prev={},unvisited=new Set(Object.keys(nodes));
+
+    for(let n of unvisited){
+        distMap[n]=Infinity;
+    }
+
+    distMap[start]=0;
+
+    while(unvisited.size){
+
+        let cur=[...unvisited].reduce((a,b)=>
+            distMap[a]<distMap[b]?a:b
+        );
+
+        if(cur===end) break;
+
+        unvisited.delete(cur);
+
+        for(let nb of nodes[cur].neighbors){
+
+            let alt=distMap[cur]+dist(nodes[cur],nodes[nb]);
+
+            if(alt<distMap[nb]){
+                distMap[nb]=alt;
+                prev[nb]=cur;
+            }
         }
-    });
+    }
 
-/* NAVIGATION */
-function goToRoom() {
-    let input = document.getElementById("roomInput").value.trim();
-    let message = document.getElementById("floorMessage");
+    let path=[],u=end;
 
-    if (!/^\d{3}$/.test(input)) {
-        message.textContent = "Enter a valid 3-digit room number.";
+    while(u){
+        path.unshift(u);
+        u=prev[u];
+    }
+
+    return path;
+}
+
+function pathLength(path,nodes){
+
+    let total=0;
+
+    for(let i=0;i<path.length-1;i++){
+
+        total+=dist(
+            nodes[path[i]],
+            nodes[path[i+1]]
+        );
+    }
+
+    return total;
+}
+
+/* =========================
+   UI
+========================= */
+
+const positions={
+    1:{x:0.353,y:0.227},
+    2:{x:0.256,y:0.220},
+    3:{x:0.254,y:0.134}
+};
+
+function showImage(){
+
+    const img=document.getElementById("mapImage");
+
+    img.src=images[current-1];
+
+    img.onload=()=>resizeCanvas();
+}
+
+function resizeCanvas(){
+
+    const canvas=document.getElementById("mapCanvas");
+    const img=document.getElementById("mapImage");
+
+    canvas.width=img.clientWidth;
+    canvas.height=img.clientHeight;
+
+    drawYou();
+}
+
+function drawYou(){
+
+    const c=document.getElementById("mapCanvas");
+    const ctx=c.getContext("2d");
+
+    ctx.clearRect(0,0,c.width,c.height);
+
+    let p=positions[current];
+
+    let x=p.x*c.width;
+    let y=p.y*c.height;
+
+    ctx.fillStyle="red";
+
+    ctx.beginPath();
+
+    ctx.moveTo(x,y);
+    ctx.lineTo(x-10,y-20);
+    ctx.lineTo(x+10,y-20);
+
+    ctx.fill();
+}
+
+function drawPath(roomId){
+
+    const canvas=document.getElementById("mapCanvas");
+    const ctx=canvas.getContext("2d");
+
+    drawYou();
+
+    const rooms=getRooms();
+    const nodes=getNodes();
+
+    const room=rooms[roomId];
+
+    if(!room) return;
+
+    const [segA,segB]=room.segment;
+
+    const pathA=shortestPath("START",segA,nodes);
+    const pathB=shortestPath("START",segB,nodes);
+
+    const path=
+        pathLength(pathA,nodes)<pathLength(pathB,nodes)
+        ? pathA
+        : pathB;
+
+    ctx.strokeStyle="blue";
+    ctx.lineWidth=4;
+
+    ctx.beginPath();
+
+    let start=positions[current];
+
+    ctx.moveTo(
+        start.x*canvas.width,
+        start.y*canvas.height
+    );
+
+    for(let n of path){
+
+        let p=nodes[n];
+
+        ctx.lineTo(
+            p.x*canvas.width,
+            p.y*canvas.height
+        );
+    }
+
+    ctx.lineTo(
+        room.hallwayPoint.x*canvas.width,
+        room.hallwayPoint.y*canvas.height
+    );
+
+    ctx.lineTo(
+        room.x*canvas.width,
+        room.y*canvas.height
+    );
+
+    ctx.stroke();
+}
+
+function goToRoom(){
+
+    let input=document.getElementById("roomInput")
+        .value
+        .trim()
+        .toUpperCase();
+
+    let msg=document.getElementById("floorMessage");
+
+    if(roomsFloor1[input]){
+        current=1;
+    }
+    else if(roomsFloor2[input]){
+        current=2;
+    }
+    else if(roomsFloor3[input]){
+        current=3;
+    }
+    else{
+        msg.textContent="Room not found";
+
+        document.getElementById("roomInput").value="";
+
+        document.getElementById("roomInput").focus();
+
         return;
     }
 
-    let floor = parseInt(input.charAt(0));
+    showImage();
 
-    if (floor >= 1 && floor <= images.length) {
-        current = floor - 1;
-        showImage();
+    setTimeout(()=>{
+        drawPath(input);
+    },200);
 
-        message.textContent = "Navigating to room " + input;
-    } else {
-        message.textContent = "Room not found.";
+    msg.textContent="Navigating to "+input;
+
+    document.getElementById("roomInput").value="";
+
+    document.getElementById("roomInput").focus();
+}
+
+/* =========================
+   ENTER KEY
+========================= */
+
+document.getElementById("roomInput")
+.addEventListener("keydown",(e)=>{
+
+    if(e.key==="Enter"){
+
+        goToRoom();
     }
-}
-
-/* DRAW MARKER (FINDING THE X ANd Y TO LATER ON ADD POINTS) */
-function drawYouAreHere() {
-    const canvas = document.getElementById("mapCanvas");
-    const ctx = canvas.getContext("2d");
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    const pos = positions[current];
-    if (!pos) return;
-
-    const x = pos.x * canvas.width;
-    const y = pos.y * canvas.height;
-
-    /* 🔺 RED ARROW (CONNECTED WITH THE YOU ARE HERE) */
-    ctx.fillStyle = "red";
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x - 10, y - 20);
-    ctx.lineTo(x + 10, y - 20);
-    ctx.closePath();
-    ctx.fill();
-
-    /* TEXT */
-    ctx.fillStyle = "black";
-    ctx.font = "14px 'Public Sans'";
-    ctx.textAlign = "center";
-    ctx.fillText("You are here", x, y - 30);
-}
-
-/* CLICK MAP TO GET COORDINATES FOR NODES (TOO BE TOLD THE X AND Y) */
-document.getElementById("mapCanvas").addEventListener("click", function (e) {
-    const rect = this.getBoundingClientRect();
-
-    const x = (e.clientX - rect.left) / this.width;
-    const y = (e.clientY - rect.top) / this.height;
-
-    alert(`Copy this:\n x: ${x.toFixed(3)}, y: ${y.toFixed(3)}, floor: ${current}`);
 });
 
-/* ⌨️ KEEP INPUT FOCUSED (NO MOUSE NEEDED) */
-function keepFocus() {
-    const input = document.getElementById("roomInput");
-    if (document.activeElement !== input) {
-        input.focus();
-    }
-}
+/* =========================
+   #1 = A
+   #2 = B
+========================= */
 
-// run every second
-setInterval(keepFocus, 1000);
+let hashPressed=false;
+
+document.addEventListener("keydown",(e)=>{
+
+    const input=document.getElementById("roomInput");
+
+    input.focus();
+
+    if(e.key==="#"){
+
+        hashPressed=true;
+
+        return;
+    }
+
+    if(hashPressed && e.key==="1"){
+
+        e.preventDefault();
+
+        input.value+="A";
+
+        hashPressed=false;
+
+        return;
+    }
+
+    if(hashPressed && e.key==="2"){
+
+        e.preventDefault();
+
+        input.value+="B";
+
+        hashPressed=false;
+
+        return;
+    }
+
+    hashPressed=false;
+});
+
+/* =========================
+   INIT
+========================= */
 
 showImage();
 
+setTimeout(()=>{
+
+    document.getElementById("roomInput").focus();
+
+},300);
 
 </script>
 
 </body>
 </html>
+
+
