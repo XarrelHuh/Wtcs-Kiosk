@@ -460,16 +460,22 @@ const positions={
     3:{x:0.254,y:0.134}
 };
 
-function showImage(){
+function showImage(callback){
 
     const img=document.getElementById("mapImage");
 
-    img.src=images[current-1];
+    img.onload=()=>{
 
-    img.onload=()=>resizeCanvas();
+        resizeCanvas();
+
+        if(callback){
+            callback();
+        }
+    };
+
+    img.src = images[current-1];
 }
-
-function resizeCanvas(){
+    function resizeCanvas(){
 
     const canvas=document.getElementById("mapCanvas");
     const img=document.getElementById("mapImage");
@@ -480,6 +486,51 @@ function resizeCanvas(){
     drawYou();
 }
 
+function getImageRect(){
+
+    const img = document.getElementById("mapImage");
+
+    const naturalRatio =
+        img.naturalWidth / img.naturalHeight;
+
+    const displayRatio =
+        img.clientWidth / img.clientHeight;
+
+    let drawWidth,
+        drawHeight,
+        offsetX,
+        offsetY;
+
+    if(displayRatio > naturalRatio){
+
+        drawHeight = img.clientHeight;
+        drawWidth = drawHeight * naturalRatio;
+
+        offsetX =
+            (img.clientWidth - drawWidth) / 2;
+
+        offsetY = 0;
+
+    }else{
+
+        drawWidth = img.clientWidth;
+        drawHeight =
+            drawWidth / naturalRatio;
+
+        offsetX = 0;
+
+        offsetY =
+            (img.clientHeight - drawHeight) / 2;
+    }
+
+    return {
+        x:offsetX,
+        y:offsetY,
+        width:drawWidth,
+        height:drawHeight
+    };
+}
+
 function drawYou(){
 
     const c=document.getElementById("mapCanvas");
@@ -487,10 +538,12 @@ function drawYou(){
 
     ctx.clearRect(0,0,c.width,c.height);
 
+    const rect = getImageRect();
+
     let p=positions[current];
 
-    let x=p.x*c.width;
-    let y=p.y*c.height;
+    let x=rect.x + p.x*rect.width;
+    let y=rect.y + p.y*rect.height;
 
     ctx.fillStyle="red";
 
@@ -532,32 +585,35 @@ function drawPath(roomId){
 
     ctx.beginPath();
 
-    let start=positions[current];
+const rect = getImageRect();
 
-    ctx.moveTo(
-        start.x*canvas.width,
-        start.y*canvas.height
-    );
+let start=positions[current];
+
+ctx.moveTo(
+    rect.x + start.x*rect.width,
+    rect.y + start.y*rect.height
+);
 
     for(let n of path){
 
         let p=nodes[n];
 
         ctx.lineTo(
-            p.x*canvas.width,
-            p.y*canvas.height
-        );
+    rect.x + p.x*rect.width,
+    rect.y + p.y*rect.height
+);
+
     }
 
     ctx.lineTo(
-        room.hallwayPoint.x*canvas.width,
-        room.hallwayPoint.y*canvas.height
-    );
+    rect.x + room.hallwayPoint.x*rect.width,
+    rect.y + room.hallwayPoint.y*rect.height
+);
 
     ctx.lineTo(
-        room.x*canvas.width,
-        room.y*canvas.height
-    );
+    rect.x + room.x*rect.width,
+    rect.y + room.y*rect.height
+);
 
     ctx.stroke();
 }
@@ -590,11 +646,9 @@ function goToRoom(){
         return;
     }
 
-    showImage();
-
-    setTimeout(()=>{
-        drawPath(input);
-    },200);
+    showImage(()=>{
+    drawPath(input);
+});
 
     msg.textContent="Navigating to "+input;
 
@@ -661,6 +715,12 @@ document.addEventListener("keydown",(e)=>{
     hashPressed=false;
 });
 
+window.addEventListener("resize",()=>{
+
+    resizeCanvas();
+
+});
+
 /* =========================
    INIT
 ========================= */
@@ -672,6 +732,8 @@ setTimeout(()=>{
     document.getElementById("roomInput").focus();
 
 },300);
+
+
 
 </script>
 
