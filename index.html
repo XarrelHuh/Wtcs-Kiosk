@@ -44,16 +44,17 @@ button{
     height:100vh;
 }
 
-img{
+img, #mapCanvas{
+    position:absolute;
+    top:0;
+    left:0;
     width:100%;
     height:100%;
     object-fit:contain;
 }
 
-#mapCanvas{
-    position:absolute;
-    top:0;
-    left:0;
+img{
+    display:block;
 }
 
 .bottomUI{
@@ -110,6 +111,7 @@ let images = [
 ];
 
 let current = 1;
+let currentRoom = null;
 
 /* =========================
 FLOOR 1
@@ -476,144 +478,107 @@ function showImage(callback){
     img.src = images[current-1];
 }
     function resizeCanvas(){
+    const canvas = document.getElementById("mapCanvas");
 
-    const canvas=document.getElementById("mapCanvas");
-    const img=document.getElementById("mapImage");
-
-    canvas.width=img.clientWidth;
-    canvas.height=img.clientHeight;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
     drawYou();
 }
 
 function getImageRect(){
-
     const img = document.getElementById("mapImage");
-
-    const naturalRatio =
-        img.naturalWidth / img.naturalHeight;
-
-    const displayRatio =
-        img.clientWidth / img.clientHeight;
-
-    let drawWidth,
-        drawHeight,
-        offsetX,
-        offsetY;
-
-    if(displayRatio > naturalRatio){
-
-        drawHeight = img.clientHeight;
-        drawWidth = drawHeight * naturalRatio;
-
-        offsetX =
-            (img.clientWidth - drawWidth) / 2;
-
-        offsetY = 0;
-
-    }else{
-
-        drawWidth = img.clientWidth;
-        drawHeight =
-            drawWidth / naturalRatio;
-
-        offsetX = 0;
-
-        offsetY =
-            (img.clientHeight - drawHeight) / 2;
-    }
+    const r = img.getBoundingClientRect();
 
     return {
-        x:offsetX,
-        y:offsetY,
-        width:drawWidth,
-        height:drawHeight
+        x: r.left,
+        y: r.top,
+        width: r.width,
+        height: r.height
     };
 }
 
 function drawYou(){
 
-    const c=document.getElementById("mapCanvas");
-    const ctx=c.getContext("2d");
+    const c = document.getElementById("mapCanvas");
+    const ctx = c.getContext("2d");
 
     ctx.clearRect(0,0,c.width,c.height);
 
+    const img = document.getElementById("mapImage");
     const rect = getImageRect();
 
-    let p=positions[current];
+    let p = positions[current];
 
-    let x=rect.x + p.x*rect.width;
-    let y=rect.y + p.y*rect.height;
+    let x = rect.x + p.x * rect.width;
+    let y = rect.y + p.y * rect.height;
 
-    ctx.fillStyle="red";
+    ctx.fillStyle = "red";
 
     ctx.beginPath();
-
-    ctx.moveTo(x,y);
-    ctx.lineTo(x-10,y-20);
-    ctx.lineTo(x+10,y-20);
-
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - 10, y - 20);
+    ctx.lineTo(x + 10, y - 20);
     ctx.fill();
 }
 
 function drawPath(roomId){
 
-    const canvas=document.getElementById("mapCanvas");
-    const ctx=canvas.getContext("2d");
+    const canvas = document.getElementById("mapCanvas");
+    const ctx = canvas.getContext("2d");
 
     drawYou();
 
-    const rooms=getRooms();
-    const nodes=getNodes();
+    const img = document.getElementById("mapImage");
+    const rect = getImageRect();
 
-    const room=rooms[roomId];
+    const rooms = getRooms();
+    const nodes = getNodes();
 
+    const room = rooms[roomId];
     if(!room) return;
 
-    const [segA,segB]=room.segment;
+    const [segA, segB] = room.segment;
 
-    const pathA=shortestPath("START",segA,nodes);
-    const pathB=shortestPath("START",segB,nodes);
+    const pathA = shortestPath("START", segA, nodes);
+    const pathB = shortestPath("START", segB, nodes);
 
-    const path=
-        pathLength(pathA,nodes)<pathLength(pathB,nodes)
+    const path =
+        pathLength(pathA, nodes) < pathLength(pathB, nodes)
         ? pathA
         : pathB;
 
-    ctx.strokeStyle="blue";
-    ctx.lineWidth=4;
+    ctx.strokeStyle = "blue";
+    ctx.lineWidth = 4;
 
     ctx.beginPath();
 
-const rect = getImageRect();
+    let start = positions[current];
 
-let start=positions[current];
-
-ctx.moveTo(
-    rect.x + start.x*rect.width,
-    rect.y + start.y*rect.height
-);
+    ctx.moveTo(
+        rect.x + start.x * rect.width,
+        rect.y + start.y * rect.height
+    );
 
     for(let n of path){
 
-        let p=nodes[n];
+        let p = nodes[n];
 
         ctx.lineTo(
-    rect.x + p.x*rect.width,
-    rect.y + p.y*rect.height
-);
-
+            rect.x + p.x * rect.width,
+            rect.y + p.y * rect.height
+        );
     }
 
     ctx.lineTo(
-    rect.x + room.hallwayPoint.x*rect.width,
-    rect.y + room.hallwayPoint.y*rect.height
-);
+        rect.x + room.hallwayPoint.x * rect.width,
+        rect.y + room.hallwayPoint.y * rect.height
+    );
 
     ctx.lineTo(
-    rect.x + room.x*rect.width,
-    rect.y + room.y*rect.height
-);
+        rect.x + room.x * rect.width,
+        rect.y + room.y * rect.height
+    );
 
     ctx.stroke();
 }
@@ -645,6 +610,8 @@ function goToRoom(){
 
         return;
     }
+
+currentRoom = input;
 
     showImage(()=>{
     drawPath(input);
@@ -718,6 +685,10 @@ document.addEventListener("keydown",(e)=>{
 window.addEventListener("resize",()=>{
 
     resizeCanvas();
+
+    if(currentRoom){
+        drawPath(currentRoom);
+    }
 
 });
 
