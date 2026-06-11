@@ -642,54 +642,43 @@ document.getElementById("roomInput")
    #2 = B
 ========================= */
 
-let hashPressed=false;
+let hashPressed = false;
+let hashTimer = null;
 
-document.addEventListener("keydown",(e)=>{
+document.addEventListener("keydown", (e) => {
+    const input = document.getElementById("roomInput");
 
-    const input=document.getElementById("roomInput");
+    // DO NOT force focus every keypress (this was breaking it)
+    
+    const key = e.key;
 
-    input.focus();
+    // Detect hash start
+    if (key === "#") {
+        hashPressed = true;
 
-    if(e.key==="#"){
-
-        hashPressed=true;
+        clearTimeout(hashTimer);
+        hashTimer = setTimeout(() => {
+            hashPressed = false;
+        }, 1000); // reset if user doesn't press next key fast
 
         return;
     }
 
-    if(hashPressed && e.key==="1"){
+    if (!hashPressed) return;
 
+    // Accept both top row + numpad keys
+    if (key === "1" || key === "Numpad1") {
         e.preventDefault();
-
-        input.value+="A";
-
-        hashPressed=false;
-
-        return;
+        input.value += "A";
     }
 
-    if(hashPressed && e.key==="2"){
-
+    if (key === "2" || key === "Numpad2") {
         e.preventDefault();
-
-        input.value+="B";
-
-        hashPressed=false;
-
-        return;
+        input.value += "B";
     }
 
-    hashPressed=false;
-});
-
-window.addEventListener("resize",()=>{
-
-    resizeCanvas();
-
-    if(currentRoom){
-        drawPath(currentRoom);
-    }
-
+    hashPressed = false;
+    clearTimeout(hashTimer);
 });
 
 /* =========================
